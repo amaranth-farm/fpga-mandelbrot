@@ -18,7 +18,7 @@ class Mandelbrot(Elaboratable):
     def __init__(self, *, bitwidth=128, fraction_bits=120, test=False):
         # Parameters
         self._bitwidth = bitwidth
-        self._fracrion_bits = fraction_bits
+        self._fraction_bits = fraction_bits
         self._test = test
 
         # Inputs
@@ -40,7 +40,7 @@ class Mandelbrot(Elaboratable):
     def elaborate(self, platform: Platform) -> Module:
         m = Module()
         bitwidth = self._bitwidth
-        scale = self._fracrion_bits
+        scale = self._fraction_bits
         test = self._test
 
         running   = Signal()
