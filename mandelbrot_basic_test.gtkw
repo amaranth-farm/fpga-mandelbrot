@@ -1,0 +1,135 @@
+[*]
+[*] GTKWave Analyzer v3.3.111 (w)1999-2020 BSI
+[*] Fri Oct  8 05:12:09 2021
+[*]
+[dumpfile] "/devel/HDL/src/deca-mandelbrot/test_MandelbrotTest_test_basic.vcd"
+[dumpfile_mtime] "Fri Oct  8 05:08:24 2021"
+[dumpfile_size] 17368
+[savefile] "/devel/HDL/src/deca-mandelbrot/mandelbrot_basic_test.gtkw"
+[timestart] 90400
+[size] 3828 2090
+[pos] -1 -1
+*-16.000000 38300 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] top.
+[sst_width] 461
+[signals_width] 330
+[sst_expanded] 1
+[sst_vpaned_height] 658
+@28
+top.clk
+@40000420
+[fpshift_count] 56
+top.cx_in[63:0]
+[fpshift_count] 56
+top.cy_in[63:0]
+@28
+top.start_in
+[color] 3
+top.fsm_state
+[color] 3
+top.escape_out
+@420
+[color] 3
+top.iterations_out[31:0]
+@22
+top.iteration[33:0]
+@200
+-Stage0
+@40000420
+[fpshift_count] 56
+top.x[63:0]
+[fpshift_count] 56
+top.y[63:0]
+@200
+-Stage1
+@40000420
+[fpshift_count] 56
+top.two_xy_stage1[63:0]
+[fpshift_count] 56
+top.xx[63:0]
+[fpshift_count] 56
+top.yy[63:0]
+@200
+-Stage2
+@40000420
+[fpshift_count] 56
+top.two_xy_stage2[63:0]
+[fpshift_count] 56
+top.xx_plus_yy[63:0]
+@200
+-Stage3
+@40c00420
+[fpshift_count] 56
+top.x_next[63:0]
+@28
+(0)top.x_next[63:0]
+(1)top.x_next[63:0]
+(2)top.x_next[63:0]
+(3)top.x_next[63:0]
+(4)top.x_next[63:0]
+(5)top.x_next[63:0]
+(6)top.x_next[63:0]
+(7)top.x_next[63:0]
+(8)top.x_next[63:0]
+(9)top.x_next[63:0]
+(10)top.x_next[63:0]
+(11)top.x_next[63:0]
+(12)top.x_next[63:0]
+(13)top.x_next[63:0]
+(14)top.x_next[63:0]
+(15)top.x_next[63:0]
+(16)top.x_next[63:0]
+(17)top.x_next[63:0]
+(18)top.x_next[63:0]
+(19)top.x_next[63:0]
+(20)top.x_next[63:0]
+(21)top.x_next[63:0]
+(22)top.x_next[63:0]
+(23)top.x_next[63:0]
+(24)top.x_next[63:0]
+(25)top.x_next[63:0]
+(26)top.x_next[63:0]
+(27)top.x_next[63:0]
+(28)top.x_next[63:0]
+(29)top.x_next[63:0]
+(30)top.x_next[63:0]
+(31)top.x_next[63:0]
+(32)top.x_next[63:0]
+(33)top.x_next[63:0]
+(34)top.x_next[63:0]
+(35)top.x_next[63:0]
+(36)top.x_next[63:0]
+(37)top.x_next[63:0]
+(38)top.x_next[63:0]
+(39)top.x_next[63:0]
+(40)top.x_next[63:0]
+(41)top.x_next[63:0]
+(42)top.x_next[63:0]
+(43)top.x_next[63:0]
+(44)top.x_next[63:0]
+(45)top.x_next[63:0]
+(46)top.x_next[63:0]
+(47)top.x_next[63:0]
+(48)top.x_next[63:0]
+(49)top.x_next[63:0]
+(50)top.x_next[63:0]
+(51)top.x_next[63:0]
+(52)top.x_next[63:0]
+(53)top.x_next[63:0]
+(54)top.x_next[63:0]
+(55)top.x_next[63:0]
+(56)top.x_next[63:0]
+(57)top.x_next[63:0]
+(58)top.x_next[63:0]
+(59)top.x_next[63:0]
+(60)top.x_next[63:0]
+(61)top.x_next[63:0]
+(62)top.x_next[63:0]
+(63)top.x_next[63:0]
+@1401200
+-group_end
+@40000420
+[fpshift_count] 56
+top.y_next[63:0]
+[pattern_trace] 1
+[pattern_trace] 0

@@ -1,0 +1,33 @@
+Mandelbrot is complex iteration of f(z) = z^2 + c
+
+concrete:
+x_next + i*y_next = (x + i*y)^2 + cx + i*cy
+
+distribute square:
+x_next + i*y_next = x*x + i*2*xy + y*y + cx + i*cy
+
+separate real/imaginary:
+x_next = x*x + y*y + cx
+y_next = 2*x*y + cy
+
+pipeline
+stage 1:
+ xx_stage1 = x*x
+ yy_stage1 = y*y
+2xy_stage1 = 2*x*y
+
+stage 2:
+   xx_plus_yy = xx_stage_1 + yy_stage1
+   2xy_stage2 = 2xy_stage1
+
+stage 3:
+    x_next = xx_plus_yy + cx
+    y_next = 2xy_stage2 + cy
+
+stage 4:
+    x = x_next
+    y = y_next
+
+xx + yy > 4 => abort
+
+
