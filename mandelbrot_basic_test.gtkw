@@ -1,20 +1,20 @@
 [*]
 [*] GTKWave Analyzer v3.3.111 (w)1999-2020 BSI
-[*] Fri Oct  8 05:12:09 2021
+[*] Fri Oct  8 10:55:56 2021
 [*]
-[dumpfile] "/devel/HDL/src/deca-mandelbrot/test_MandelbrotTest_test_basic.vcd"
-[dumpfile_mtime] "Fri Oct  8 05:08:24 2021"
-[dumpfile_size] 17368
-[savefile] "/devel/HDL/src/deca-mandelbrot/mandelbrot_basic_test.gtkw"
-[timestart] 90400
+[dumpfile] "test_MandelbrotTest_test_basic.vcd"
+[dumpfile_mtime] "Fri Oct  8 10:54:39 2021"
+[dumpfile_size] 17063
+[savefile] "mandelbrot_basic_test.gtkw"
+[timestart] 0
 [size] 3828 2090
 [pos] -1 -1
-*-16.000000 38300 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-16.571545 1054900 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] top.
 [sst_width] 461
-[signals_width] 330
+[signals_width] 375
 [sst_expanded] 1
-[sst_vpaned_height] 658
+[sst_vpaned_height] 650
 @28
 top.clk
 @40000420
@@ -27,11 +27,18 @@ top.start_in
 [color] 3
 top.fsm_state
 [color] 3
+top.done_out
+[color] 3
 top.escape_out
+@29
+[color] 3
+top.maxed_out
+@24
+top.max_iterations_in[31:0]
 @420
 [color] 3
 top.iterations_out[31:0]
-@22
+@24
 top.iteration[33:0]
 @200
 -Stage0

@@ -30,6 +30,8 @@ class Mandelbrot(Elaboratable):
         # Outputs
         self.busy_out          = Signal()
         self.escape_out        = Signal()
+        self.maxed_out         = Signal()
+        self.done_out          = Signal()
         self.iterations_out    = Signal(32)
 
         if test:
@@ -63,6 +65,7 @@ class Mandelbrot(Elaboratable):
         x_next        = Signal(signed(bitwidth))
         y_next        = Signal(signed(bitwidth))
         escape        = Signal()
+        maxed_out     = Signal()
 
         four = Signal(signed(bitwidth))
 
@@ -70,6 +73,7 @@ class Mandelbrot(Elaboratable):
             self.busy_out.eq(running),
             self.iterations_out.eq(iteration >> 2),
             self.escape_out.eq(escape),
+            self.maxed_out.eq(maxed_out),
             four.eq(Const(4, signed(bitwidth)) << scale),
         ]
 
@@ -96,11 +100,12 @@ class Mandelbrot(Elaboratable):
                         two_xy_stage2 .eq(0),
                         xx_plus_yy    .eq(0),
                         # stage 3
-                        x_next        .eq(0),
-                        y_next        .eq(0),
+                        x_next        .eq(self.cx_in),
+                        y_next        .eq(self.cy_in),
 
                         # non-pipelined
                         escape        .eq(0),
+                        maxed_out     .eq(0),
                         iteration     .eq(3),
                     ]
                     m.next = "RUNNING"
@@ -126,10 +131,12 @@ class Mandelbrot(Elaboratable):
                     escape        .eq(xx_plus_yy > four),
 
                     # not pipelined
-                    iteration     .eq(iteration + 1)
+                    iteration     .eq(iteration + 1),
+                    maxed_out     .eq(iteration >= self.max_iterations_in),
                 ]
 
-                with m.If(escape):
+                with m.If(escape | maxed_out):
+                    m.d.comb += self.done_out.eq(1)
                     m.next = "IDLE"
 
         return m
@@ -142,9 +149,9 @@ class MandelbrotTest(GatewareTestCase):
         print("=================> mandel start")
         x = start_x
         y = start_y
-        escape = 0
+        done = 0
         yield from self.advance_cycles(4)
-        while escape == 0:
+        while done == 0:
             x = ((x * x) >> scale) + start_x
             y = ((x * y) >> (scale - 1)) + start_y
             dut_x = (yield dut.x_next)
@@ -154,9 +161,9 @@ class MandelbrotTest(GatewareTestCase):
                 self.assertEqual(dut_x, x)
                 self.assertEqual(dut_y, y)
             yield from self.advance_cycles(4)
-            escape = (yield dut.escape_out)
+            done = (yield dut.maxed_out) | (yield dut.escape_out)
 
-        self.assertEqual(escape, 1)
+        self.assertEqual(done, 1)
 
 
     @sync_test_case
@@ -166,7 +173,7 @@ class MandelbrotTest(GatewareTestCase):
         start_x = 1 << scale
         yield dut.cx_in.eq(start_x)
         yield dut.cy_in.eq(0)
-        yield dut.max_iterations_in.eq(10)
+        yield dut.max_iterations_in.eq(32)
         yield
         yield from self.pulse(dut.start_in)
         yield
