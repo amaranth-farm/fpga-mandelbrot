@@ -1,0 +1,143 @@
+[*]
+[*] GTKWave Analyzer v3.3.111 (w)1999-2020 BSI
+[*] Sat Oct  9 06:16:05 2021
+[*]
+[dumpfile] "test_FractalManagerTest_test_basic.vcd"
+[dumpfile_mtime] "Sat Oct  9 06:13:22 2021"
+[dumpfile_size] 40250
+[savefile] "fractalmanager_basic_test.gtkw"
+[timestart] 281600
+[size] 3828 2090
+[pos] -1 -1
+*-16.298531 420400 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] top.
+[sst_width] 535
+[signals_width] 450
+[sst_expanded] 1
+[sst_vpaned_height] 658
+@28
+top.clk
+@200
+-Input stream
+@22
+top.command_stream__payload[7:0]
+@28
+top.command_stream__valid
+top.command_stream__ready
+@22
+top.bytepos[15:0]
+top.no_pixels_x[15:0]
+top.no_pixels_y[15:0]
+@40c00420
+[fpshift_count] 56
+top.bottom_left_corner_x[63:0]
+@28
+(0)top.bottom_left_corner_x[63:0]
+(1)top.bottom_left_corner_x[63:0]
+(2)top.bottom_left_corner_x[63:0]
+(3)top.bottom_left_corner_x[63:0]
+(4)top.bottom_left_corner_x[63:0]
+(5)top.bottom_left_corner_x[63:0]
+(6)top.bottom_left_corner_x[63:0]
+(7)top.bottom_left_corner_x[63:0]
+(8)top.bottom_left_corner_x[63:0]
+(9)top.bottom_left_corner_x[63:0]
+(10)top.bottom_left_corner_x[63:0]
+(11)top.bottom_left_corner_x[63:0]
+(12)top.bottom_left_corner_x[63:0]
+(13)top.bottom_left_corner_x[63:0]
+(14)top.bottom_left_corner_x[63:0]
+(15)top.bottom_left_corner_x[63:0]
+(16)top.bottom_left_corner_x[63:0]
+(17)top.bottom_left_corner_x[63:0]
+(18)top.bottom_left_corner_x[63:0]
+(19)top.bottom_left_corner_x[63:0]
+(20)top.bottom_left_corner_x[63:0]
+(21)top.bottom_left_corner_x[63:0]
+(22)top.bottom_left_corner_x[63:0]
+(23)top.bottom_left_corner_x[63:0]
+(24)top.bottom_left_corner_x[63:0]
+(25)top.bottom_left_corner_x[63:0]
+(26)top.bottom_left_corner_x[63:0]
+(27)top.bottom_left_corner_x[63:0]
+(28)top.bottom_left_corner_x[63:0]
+(29)top.bottom_left_corner_x[63:0]
+(30)top.bottom_left_corner_x[63:0]
+(31)top.bottom_left_corner_x[63:0]
+(32)top.bottom_left_corner_x[63:0]
+(33)top.bottom_left_corner_x[63:0]
+(34)top.bottom_left_corner_x[63:0]
+(35)top.bottom_left_corner_x[63:0]
+(36)top.bottom_left_corner_x[63:0]
+(37)top.bottom_left_corner_x[63:0]
+(38)top.bottom_left_corner_x[63:0]
+(39)top.bottom_left_corner_x[63:0]
+(40)top.bottom_left_corner_x[63:0]
+(41)top.bottom_left_corner_x[63:0]
+(42)top.bottom_left_corner_x[63:0]
+(43)top.bottom_left_corner_x[63:0]
+(44)top.bottom_left_corner_x[63:0]
+(45)top.bottom_left_corner_x[63:0]
+(46)top.bottom_left_corner_x[63:0]
+(47)top.bottom_left_corner_x[63:0]
+(48)top.bottom_left_corner_x[63:0]
+(49)top.bottom_left_corner_x[63:0]
+(50)top.bottom_left_corner_x[63:0]
+(51)top.bottom_left_corner_x[63:0]
+(52)top.bottom_left_corner_x[63:0]
+(53)top.bottom_left_corner_x[63:0]
+(54)top.bottom_left_corner_x[63:0]
+(55)top.bottom_left_corner_x[63:0]
+(56)top.bottom_left_corner_x[63:0]
+(57)top.bottom_left_corner_x[63:0]
+(58)top.bottom_left_corner_x[63:0]
+(59)top.bottom_left_corner_x[63:0]
+(60)top.bottom_left_corner_x[63:0]
+(61)top.bottom_left_corner_x[63:0]
+(62)top.bottom_left_corner_x[63:0]
+(63)top.bottom_left_corner_x[63:0]
+@1401200
+-group_end
+@40000022
+[fpshift_count] 56
+top.bottom_left_corner_y[63:0]
+@40000420
+[fpshift_count] 56
+top.step[63:0]
+@28
+top.command_complete
+@200
+-Core Scheduler
+@28
+top.next_core
+top.next_core_ready
+top.current_core
+top.fsm_state
+@200
+-Cores
+@28
+top.idle_0
+top.idle_1
+top.busy_out
+top.busy_out$1
+top.done_0
+top.done_1
+top.escape_0
+top.escape_1
+top.maxed_0
+top.maxed_1
+@200
+-Result Collector
+@28
+top.fsm_state$1
+top.ready
+top.fsm_state$1
+@200
+-Output Stream
+@28
+top.next_core_scheduler.i[1:0]
+top.next_core_scheduler.n
+@29
+top.next_core_scheduler.o
+[pattern_trace] 1
+[pattern_trace] 0
