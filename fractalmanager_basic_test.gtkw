@@ -1,6 +1,6 @@
 [*]
 [*] GTKWave Analyzer v3.3.111 (w)1999-2020 BSI
-[*] Sat Oct  9 09:02:55 2021
+[*] Sat Oct  9 09:20:22 2021
 [*]
 [dumpfile] "test_FractalManagerTest_test_basic.vcd"
 [dumpfile_mtime] "Sat Oct  9 06:13:22 2021"
@@ -9,7 +9,7 @@
 [timestart] 281600
 [size] 3828 2090
 [pos] -1 -1
-*-20.156197 22835000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-17.457640 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] top.
 [sst_width] 526
 [signals_width] 450
@@ -28,6 +28,8 @@ top.command_stream__ready
 top.bytepos[15:0]
 top.no_pixels_x[15:0]
 top.no_pixels_y[15:0]
+@23
+top.max_iterations[31:0]
 @40c00420
 [fpshift_count] 56
 top.bottom_left_corner_x[63:0]
@@ -131,6 +133,8 @@ top.core_0.iterations_out[31:0]
 top.core_0.cx_in[63:0]
 [fpshift_count] 56
 top.core_0.cy_in[63:0]
+@28
+top.core_0.result_ready_out
 @200
 -Core1
 @28
@@ -146,6 +150,9 @@ top.core_1.cy_in[63:0]
 top.core_1.x[63:0]
 [fpshift_count] 56
 top.core_1.y[63:0]
+@28
+top.core_1.result_ready_out
+top.core_1.result_read
 @200
 -Core Status
 @28
@@ -161,6 +168,8 @@ top.escape_0
 top.escape_1
 top.maxed_0
 top.maxed_1
+top.collect_0
+top.collect_1
 @200
 -Result Collector
 @28

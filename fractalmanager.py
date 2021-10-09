@@ -28,8 +28,9 @@ class FractalManager(Elaboratable):
         stream_in = self.command_stream_in
         no_cores = self._no_cores
 
-        no_pixels_x = Signal(16)
-        no_pixels_y = Signal(16)
+        no_pixels_x    = Signal(16)
+        no_pixels_y    = Signal(16)
+        max_iterations = Signal(32)
 
         bottom_left_corner_x = Signal(signed(bitwidth))
         bottom_left_corner_y = Signal(signed(bitwidth))
@@ -61,16 +62,20 @@ class FractalManager(Elaboratable):
                 with m.Case(3):
                     m.d.sync += no_pixels_y[8:].eq(stream_in.payload)
 
-                for b in range(bytewidth):
+                for b in range(4):
                     with m.Case(4 + b):
+                        m.d.sync += max_iterations[b*8:(b*8+8)].eq(stream_in.payload),
+
+                for b in range(bytewidth):
+                    with m.Case(8 + b):
                         m.d.sync += bottom_left_corner_x[b*8:(b*8+8)].eq(stream_in.payload),
 
                 for b in range(bytewidth):
-                    with m.Case(4 + bytewidth + b):
+                    with m.Case(8 + bytewidth + b):
                         m.d.sync += bottom_left_corner_y[b*8:(b*8+8)].eq(stream_in.payload),
 
                 for b in range(bytewidth):
-                    with m.Case(4 + 2*bytewidth + b):
+                    with m.Case(8 + 2*bytewidth + b):
                         m.d.sync += step[b*8:(b*8+8)].eq(stream_in.payload),
 
                 with m.Default():
@@ -114,7 +119,7 @@ class FractalManager(Elaboratable):
                 iterations[c].eq(core.iterations_out),
                 core.cx_in.eq(xs[c]),
                 core.cy_in.eq(ys[c]),
-                core.max_iterations_in.eq(63),
+                core.max_iterations_in.eq(max_iterations),
             ]
 
         # next core scheduler
@@ -271,6 +276,12 @@ class FractalManagerTest(GatewareTestCase):
             yield command_stream.payload.eq(4)
             yield
             yield command_stream.payload.eq(0)
+            yield
+
+        # max iterations
+        max_iterations = 63
+        for b in range(4):
+            yield command_stream.payload.eq(max_iterations >> (8 * b))
             yield
 
         # send corner_x

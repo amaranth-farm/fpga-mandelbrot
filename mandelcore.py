@@ -36,7 +36,7 @@ class Mandelbrot(Elaboratable):
         test = self._test
 
         running   = Signal()
-        iteration = Signal(34)
+        iteration = Signal(32)
 
         # pipeline stages enable signals
         stage_enable = Signal(3)
