@@ -111,7 +111,10 @@ class FractalManager(Elaboratable):
                 maxed[c].eq(core.maxed_out),
                 escape[c].eq(core.escape_out),
                 core.result_read_in.eq(collect[c]),
-                core.max_iterations_in.eq(10),
+                iterations[c].eq(core.iterations_out),
+                core.cx_in.eq(xs[c]),
+                core.cy_in.eq(ys[c]),
+                core.max_iterations_in.eq(63),
             ]
 
         # next core scheduler
@@ -122,7 +125,7 @@ class FractalManager(Elaboratable):
         m.submodules.next_core_scheduler = next_core_scheduler = PriorityEncoder(no_cores)
         m.d.comb += [
             next_core_scheduler.i.eq(Cat(idle)),
-            next_core.eq(next_core_scheduler.o - 1),
+            next_core.eq(next_core_scheduler.o),
             next_core_ready.eq(~next_core_scheduler.n),
         ]
 
@@ -134,7 +137,7 @@ class FractalManager(Elaboratable):
         m.submodules.result_scheduler = result_scheduler = PriorityEncoder(no_cores)
         m.d.comb += [
             result_scheduler.i.eq(Cat(done)),
-            next_result.eq(result_scheduler.o - 1),
+            next_result.eq(result_scheduler.o),
             next_result_ready.eq(~result_scheduler.n),
         ]
 
@@ -257,14 +260,15 @@ class FractalManagerTest(GatewareTestCase):
         result_stream = dut.pixel_stream_out
         corner_x = -3 << (scale - 1)
         corner_y = 0
-        step = 1 << (scale - 4)
+        step = 1 << (scale - 2)
 
         yield from self.advance_cycles(5)
         yield command_stream.valid.eq(1)
+        yield result_stream.ready.eq(1)
 
-        # send 0x0010 twice to calculate 10x10 pixels
+        # send 0x0010 twice to calculate 4x4 pixels
         for _ in range(2):
-            yield command_stream.payload.eq(10)
+            yield command_stream.payload.eq(4)
             yield
             yield command_stream.payload.eq(0)
             yield
@@ -288,4 +292,4 @@ class FractalManagerTest(GatewareTestCase):
 
         yield command_stream.valid.eq(0)
 
-        yield from self.advance_cycles(300)
+        yield from self.advance_cycles(2500)

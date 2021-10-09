@@ -1,6 +1,6 @@
 [*]
 [*] GTKWave Analyzer v3.3.111 (w)1999-2020 BSI
-[*] Sat Oct  9 06:16:05 2021
+[*] Sat Oct  9 09:02:55 2021
 [*]
 [dumpfile] "test_FractalManagerTest_test_basic.vcd"
 [dumpfile_mtime] "Sat Oct  9 06:13:22 2021"
@@ -9,9 +9,9 @@
 [timestart] 281600
 [size] 3828 2090
 [pos] -1 -1
-*-16.298531 420400 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-20.156197 22835000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] top.
-[sst_width] 535
+[sst_width] 526
 [signals_width] 450
 [sst_expanded] 1
 [sst_vpaned_height] 658
@@ -98,10 +98,9 @@ top.bottom_left_corner_x[63:0]
 (63)top.bottom_left_corner_x[63:0]
 @1401200
 -group_end
-@40000022
+@40000420
 [fpshift_count] 56
 top.bottom_left_corner_y[63:0]
-@40000420
 [fpshift_count] 56
 top.step[63:0]
 @28
@@ -109,13 +108,49 @@ top.command_complete
 @200
 -Core Scheduler
 @28
+top.current_core
 top.next_core
 top.next_core_ready
-top.current_core
 top.fsm_state
+@22
+top.current_pixel_x[15:0]
+top.current_pixel_y[15:0]
+@40000420
+[fpshift_count] 56
+top.current_x[63:0]
+[fpshift_count] 56
+top.current_y[63:0]
 @200
--Cores
+-Core0
 @28
+top.core_0.fsm_state
+@22
+top.core_0.iterations_out[31:0]
+@40000420
+[fpshift_count] 56
+top.core_0.cx_in[63:0]
+[fpshift_count] 56
+top.core_0.cy_in[63:0]
+@200
+-Core1
+@28
+top.core_1.fsm_state
+@22
+top.core_1.iterations_out[31:0]
+@40000420
+[fpshift_count] 56
+top.core_1.cx_in[63:0]
+[fpshift_count] 56
+top.core_1.cy_in[63:0]
+[fpshift_count] 56
+top.core_1.x[63:0]
+[fpshift_count] 56
+top.core_1.y[63:0]
+@200
+-Core Status
+@28
+top.core_0.start_in
+top.core_1.start_in
 top.idle_0
 top.idle_1
 top.busy_out
@@ -130,14 +165,20 @@ top.maxed_1
 -Result Collector
 @28
 top.fsm_state$1
-top.ready
-top.fsm_state$1
+@24
+top.result_iterations[31:0]
+@28
+top.current_result
+top.next_result
+top.next_result_ready
+@22
+top.result_pixel_x[15:0]
+top.result_pixel_y[15:0]
 @200
 -Output Stream
+@22
+top.pixel_stream__payload[7:0]
 @28
-top.next_core_scheduler.i[1:0]
-top.next_core_scheduler.n
-@29
-top.next_core_scheduler.o
+top.pixel_stream__valid
 [pattern_trace] 1
 [pattern_trace] 0
