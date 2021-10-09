@@ -1,18 +1,6 @@
 from nmigen import *
 from nmigen.build import Platform
 from nmigen_library.test   import GatewareTestCase, sync_test_case
-from nmigen_library.stream import StreamInterface
-
-
-class Mandelcore(Elaboratable):
-    def __init__(self):
-        self.command_stream_in  = StreamInterface()
-        self.pixel_stream_out   = StreamInterface()
-
-    def elaborate(self, platform: Platform) -> Module:
-        m = Module()
-        return m
-
 
 class Mandelbrot(Elaboratable):
     def __init__(self, *, bitwidth=128, fraction_bits=120, test=False):
@@ -26,12 +14,14 @@ class Mandelbrot(Elaboratable):
         self.cy_in             = Signal(signed(bitwidth))
         self.start_in          = Signal()
         self.max_iterations_in = Signal(32)
+        self.result_read_in    = Signal()
 
         # Outputs
         self.busy_out          = Signal()
         self.escape_out        = Signal()
         self.maxed_out         = Signal()
         self.done_out          = Signal()
+        self.result_ready_out  = Signal()
         self.iterations_out    = Signal(32)
 
         if test:
@@ -65,11 +55,15 @@ class Mandelbrot(Elaboratable):
         y             = Signal(signed(bitwidth))
         escape        = Signal()
         maxed_out     = Signal()
+        result_read   = Signal(reset=1)
 
         four = Signal(signed(bitwidth))
 
+        with m.If(self.result_read_in):
+            m.d.sync += result_read.eq(1)
+
         m.d.comb += [
-            self.busy_out.eq(running),
+            self.busy_out.eq(running | ~result_read),
             self.iterations_out.eq(iteration),
             self.escape_out.eq(escape),
             self.maxed_out.eq(maxed_out),
@@ -125,9 +119,11 @@ class Mandelbrot(Elaboratable):
                         xx_plus_yy    .eq(0),
 
                         # non-pipelined
-                        escape        .eq(0),
-                        maxed_out     .eq(0),
-                        iteration     .eq(0),
+                        escape                .eq(0),
+                        maxed_out             .eq(0),
+                        iteration             .eq(0),
+                        self.result_ready_out .eq(0),
+                        result_read           .eq(0),
                     ]
                     m.next = "S1"
 
@@ -135,6 +131,7 @@ class Mandelbrot(Elaboratable):
                 m.d.comb += stage_enable.eq(0b001)
                 with m.If(escape | maxed_out):
                     m.d.comb += self.done_out.eq(1)
+                    m.d.sync += self.result_ready_out.eq(1)
                     m.next = "IDLE"
                 with m.Else():
                     m.next = "S2"
@@ -172,6 +169,10 @@ class MandelbrotTest(GatewareTestCase):
             done = (yield dut.maxed_out) | (yield dut.escape_out)
 
         self.assertEqual(done, 1)
+        yield dut.result_read_in.eq(1)
+        yield
+        yield dut.result_read_in.eq(0)
+        yield
 
 
     @sync_test_case
@@ -202,6 +203,11 @@ class MandelbrotTest(GatewareTestCase):
         yield from self.advance_cycles(3)
 
         self.assertEqual((yield dut.escape_out), 1)
+
+        yield dut.result_read_in.eq(1)
+        yield
+        yield dut.result_read_in.eq(0)
+        yield
 
         start_x = 1 << (scale - 1)
         start_y = 0
