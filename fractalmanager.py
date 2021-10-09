@@ -1,10 +1,12 @@
 from nmigen import *
-from nmigen.lib.coding import PriorityDecoder, PriorityEncoder
 from nmigen.build import Platform
 from nmigen_library.test   import GatewareTestCase, sync_test_case
 from nmigen_library.stream import StreamInterface
 
 from mandelcore import Mandelbrot
+
+# work around https://github.com/nmigen/nmigen/pull/640
+from encoder import PriorityEncoder
 
 class FractalManager(Elaboratable):
     def __init__(self, *, bitwidth, fraction_bits, no_cores, test=False):
