@@ -60,7 +60,13 @@ class Mandelbrot(Elaboratable):
         four = Signal(signed(bitwidth))
 
         with m.If(self.result_read_in):
-            m.d.sync += result_read.eq(1)
+            m.d.sync += [
+                result_read.eq(1),
+                self.result_ready_out.eq(0),
+                maxed_out.eq(0),
+                escape.eq(0),
+                iteration.eq(0)
+            ]
 
         m.d.comb += [
             self.busy_out.eq(running | ~result_read),
@@ -241,4 +247,6 @@ class MandelbrotTest(GatewareTestCase):
         yield from self.pulse(dut.start_in)
         yield
         yield from self.iterate_mandel(scale, dut, start_x, start_y, check=False)
-
+        yield
+        self.assertEqual((yield dut.result_ready_out), 0)
+        yield

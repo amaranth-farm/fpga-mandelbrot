@@ -5,7 +5,7 @@ from nmigen.lib.coding import PriorityEncoder
 from nmigen_library.test   import GatewareTestCase, sync_test_case
 from nmigen_library.stream import StreamInterface
 
-from mandelcore import Mandelbrot
+from mandelbrot import Mandelbrot
 
 class FractalManager(Elaboratable):
     def __init__(self, *, bitwidth, fraction_bits, no_cores, test=False):
