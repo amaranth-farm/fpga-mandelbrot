@@ -19,6 +19,7 @@ class FractalManager(Elaboratable):
         # I/O
         self.command_stream_in  = StreamInterface(name="command_stream")
         self.pixel_stream_out   = StreamInterface(name="pixel_stream")
+        self.busy               = Signal(no_cores)
 
     def elaborate(self, platform: Platform) -> Module:
         m = Module()
@@ -84,6 +85,7 @@ class FractalManager(Elaboratable):
                         current_y.eq(bottom_left_corner_y),
                         current_pixel_x.eq(0),
                         current_pixel_y.eq(0),
+                        bytepos.eq(0),
                     ]
 
         # instantiate cores
@@ -93,8 +95,10 @@ class FractalManager(Elaboratable):
         start    = Array([Signal(                  name=f"start_{n}")  for n in range(no_cores)])
         xs       = Array([Signal(signed(bitwidth), name=f"x_{n}")      for n in range(no_cores)])
         ys       = Array([Signal(signed(bitwidth), name=f"y_{n}")      for n in range(no_cores)])
-        pixel_x = Array([Signal(signed(bitwidth), name=f"pixelx_{n}") for n in range(no_cores)])
-        pixel_y = Array([Signal(signed(bitwidth), name=f"pixely_{n}") for n in range(no_cores)])
+        pixel_x = Array([Signal(signed(bitwidth),  name=f"pixelx_{n}") for n in range(no_cores)])
+        pixel_y = Array([Signal(signed(bitwidth),  name=f"pixely_{n}") for n in range(no_cores)])
+
+        m.d.comb += self.busy.eq(~Cat(idle))
 
         # result collector signals
         done       = Array([Signal(    name=f"done_{n}")    for n in range(no_cores)])
@@ -199,6 +203,7 @@ class FractalManager(Elaboratable):
         result_escape     = Signal()
         result_maxed      = Signal()
         send_byte         = Signal(8)
+        first_result_sent = Signal()
 
         # result collector FSM
         with m.FSM() as fsm:
@@ -227,6 +232,10 @@ class FractalManager(Elaboratable):
                     with m.Switch(send_byte):
                         with m.Case(0):
                             m.d.comb += pixel_out.payload.eq(result_pixel_x[0:8])
+                            # mark first result byte
+                            with m.If(~first_result_sent):
+                                m.d.comb += pixel_out.first.eq(1)
+                                m.d.sync += first_result_sent.eq(1)
                         with m.Case(1):
                             m.d.comb +=  pixel_out.payload.eq(result_pixel_x[8:16])
                         with m.Case(2):
@@ -246,6 +255,10 @@ class FractalManager(Elaboratable):
                         with m.Default():
                             # separator
                             m.d.comb +=  pixel_out.payload.eq(0xa5)
+                            # mark last result byte
+                            with m.If(Cat(idle) == Repl(Const(1, 1), no_cores)):
+                                m.d.comb += pixel_out.last.eq(1)
+                                m.d.sync += first_result_sent.eq(0)
                             m.next = "WAIT"
 
         return m

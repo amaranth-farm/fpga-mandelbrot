@@ -24,8 +24,8 @@ from fractalmanager import FractalManager
 
 
 class MandelbrotAccelerator(Elaboratable):
-    MAX_PACKET_SIZE = 512
-    USE_ILA = True
+    MAX_PACKET_SIZE = 256
+    USE_ILA = False
     ILA_MAX_PACKET_SIZE = 512
 
     def create_descriptors(self):
@@ -109,7 +109,7 @@ class MandelbrotAccelerator(Elaboratable):
         usb.add_endpoint(ep1_in)
 
         m.submodules.command_fifo = command_fifo = AsyncFIFO(width=8, depth=32, w_domain="usb", r_domain="fast")
-        m.submodules.result_fifo  = result_fifo  = AsyncFIFO(width=8, depth=self.MAX_PACKET_SIZE, w_domain="fast", r_domain="usb")
+        m.submodules.result_fifo  = result_fifo  = AsyncFIFO(width=8+2, depth=4*self.MAX_PACKET_SIZE, w_domain="fast", r_domain="usb")
 
         m.submodules.fractalmanager = fractalmanager = DomainRenamer("fast")(FractalManager(bitwidth=8*9, fraction_bits=8*8, no_cores=3))
 
@@ -118,7 +118,11 @@ class MandelbrotAccelerator(Elaboratable):
             connect_stream_to_fifo(ep1_out.stream, command_fifo),
             connect_fifo_to_stream(command_fifo, fractalmanager.command_stream_in),
             connect_stream_to_fifo(fractalmanager.pixel_stream_out, result_fifo),
+            result_fifo.w_data[8].eq(fractalmanager.pixel_stream_out.first),
+            result_fifo.w_data[9].eq(fractalmanager.pixel_stream_out.last),
             connect_fifo_to_stream(result_fifo, ep1_in.stream),
+            ep1_in.stream.first.eq(result_fifo.r_data[8]),
+            ep1_in.stream.last.eq(result_fifo.r_data[9]),
         ]
 
         # Connect our device as a high speed device
@@ -128,12 +132,19 @@ class MandelbrotAccelerator(Elaboratable):
         ]
 
         if self.USE_ILA:
+            usb_in_active = Signal()
+
+            m.d.comb += [
+                usb_in_active.eq(ep1_out.stream.ready & ep1_out.stream.valid)
+            ]
+
             signals = [
-                ep1_out.stream.ready,
-                ep1_out.stream.valid,
-                ep1_out.stream.first,
-                ep1_out.stream.last,
-                ep1_out.stream.payload,
+                #ep1_out.stream.ready,
+                #ep1_out.stream.valid,
+                #ep1_out.stream.first,
+                #ep1_out.stream.last,
+                #ep1_out.stream.payload,
+                usb_in_active,
                 result_fifo.r_level,
                 ep1_in.stream.ready,
                 ep1_in.stream.valid,
@@ -160,7 +171,7 @@ class MandelbrotAccelerator(Elaboratable):
 
             m.d.comb += [
                 stream_ep.stream.stream_eq(ila.stream),
-                ila.trigger.eq(ep1_in.stream.ready | ep1_out.stream.valid),
+                ila.trigger.eq(usb_in_active | ep1_in.stream.ready & ep1_in.stream.valid),
             ]
 
             ILACoreParameters(ila).pickle()
@@ -170,6 +181,9 @@ class MandelbrotAccelerator(Elaboratable):
             leds[0].eq(usb.rx_activity_led),
             leds[1].eq(usb.tx_activity_led),
             leds[2].eq(usb.suspended),
+            Cat(leds[3:6]).eq(fractalmanager.busy),
+            leds[6].eq(result_fifo.r_en),
+            leds[7].eq(result_fifo.r_rdy),
         ]
 
         return m
