@@ -5,16 +5,13 @@
 import os
 
 from nmigen              import *
-from nmigen.lib.cdc      import FFSynchronizer
+from nmigen.lib.fifo     import AsyncFIFO
 
-from nmigen_library.debug.ila         import StreamILA, ILACoreParameters
-from nmigen_library.utils             import EdgeToPulse, Timer
-
+from nmigen_library.debug.ila   import StreamILA, ILACoreParameters
+from nmigen_library.stream      import connect_stream_to_fifo, connect_fifo_to_stream
 
 from luna                import top_level_cli
 from luna.usb2           import USBDevice, USBStreamInEndpoint, USBStreamOutEndpoint
-
-#from luna.gateware.usb.usb2.endpoints.isochronous import USBIsochronousOutRawStreamEndpoint
 
 from usb_protocol.types                       import USBRequestType, USBDirection, USBStandardRequests
 from usb_protocol.emitters                    import DeviceDescriptorCollection
@@ -23,10 +20,12 @@ from luna.gateware.usb.usb2.device            import USBDevice
 from luna.gateware.usb.usb2.endpoints.stream  import USBMultibyteStreamInEndpoint
 from luna.gateware.usb.usb2.request           import USBRequestHandler, StallOnlyRequestHandler
 
+from fractalmanager import FractalManager
+
 
 class MandelbrotAccelerator(Elaboratable):
     MAX_PACKET_SIZE = 512
-    USE_ILA = False
+    USE_ILA = True
     ILA_MAX_PACKET_SIZE = 512
 
     def create_descriptors(self):
@@ -109,6 +108,18 @@ class MandelbrotAccelerator(Elaboratable):
             max_packet_size=self.MAX_PACKET_SIZE)
         usb.add_endpoint(ep1_in)
 
+        m.submodules.command_fifo = command_fifo = AsyncFIFO(width=8, depth=32, w_domain="usb", r_domain="fast")
+        m.submodules.result_fifo  = result_fifo  = AsyncFIFO(width=8, depth=self.MAX_PACKET_SIZE, w_domain="fast", r_domain="usb")
+
+        m.submodules.fractalmanager = fractalmanager = DomainRenamer("fast")(FractalManager(bitwidth=8*9, fraction_bits=8*8, no_cores=3))
+
+        # wire up USB via FIFOs to fractalmanager
+        m.d.comb += [
+            connect_stream_to_fifo(ep1_out.stream, command_fifo),
+            connect_fifo_to_stream(command_fifo, fractalmanager.command_stream_in),
+            connect_stream_to_fifo(fractalmanager.pixel_stream_out, result_fifo),
+            connect_fifo_to_stream(result_fifo, ep1_in.stream),
+        ]
 
         # Connect our device as a high speed device
         m.d.comb += [
@@ -118,18 +129,21 @@ class MandelbrotAccelerator(Elaboratable):
 
         if self.USE_ILA:
             signals = [
-                ep1_in.stream.ready,
-                ep1_in.stream.valid,
-                ep1_in.stream.first,
-                ep1_in.stream.last,
                 ep1_out.stream.ready,
                 ep1_out.stream.valid,
                 ep1_out.stream.first,
                 ep1_out.stream.last,
+                ep1_out.stream.payload,
+                result_fifo.r_level,
+                ep1_in.stream.ready,
+                ep1_in.stream.valid,
+                ep1_in.stream.first,
+                ep1_in.stream.last,
+                ep1_in.stream.payload,
             ]
 
             signals_bits = sum([s.width for s in signals])
-            depth = 3 * 8 * 1024 #int(33*8*1024/signals_bits)
+            depth = 4 * 8 * 1024 #int(33*8*1024/signals_bits)
             m.submodules.ila = ila = \
                 StreamILA(
                     signals=signals,
@@ -146,13 +160,16 @@ class MandelbrotAccelerator(Elaboratable):
 
             m.d.comb += [
                 stream_ep.stream.stream_eq(ila.stream),
-                ila.trigger.eq(~(ep1_out.stream.ready & ep1_out.stream.valid)),
+                ila.trigger.eq(ep1_in.stream.ready | ep1_out.stream.valid),
             ]
 
             ILACoreParameters(ila).pickle()
 
         leds = Cat([platform.request("led", i) for i in range(8)])
         m.d.comb += [
+            leds[0].eq(usb.rx_activity_led),
+            leds[1].eq(usb.tx_activity_led),
+            leds[2].eq(usb.suspended),
         ]
 
         return m

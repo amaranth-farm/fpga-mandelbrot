@@ -28,6 +28,7 @@ class ArrowDECAClockAndResetController(Elaboratable):
 
         m.submodules.pll = Instance("ALTPLL",
             p_BANDWIDTH_TYPE         = "AUTO",
+            # USB clock domain: 60MHz
             p_CLK0_DIVIDE_BY         = 1,
             p_CLK0_DUTY_CYCLE        = 50,
             p_CLK0_MULTIPLY_BY       = 1,
@@ -35,9 +36,10 @@ class ArrowDECAClockAndResetController(Elaboratable):
             p_INCLK0_INPUT_FREQUENCY = 16666,
             p_COMPENSATE_CLOCK       = "CLK0",
             p_INTENDED_DEVICE_FAMILY = "MAX 10",
+            # Fast clock domain
             p_CLK1_DIVIDE_BY         = 1,
             p_CLK1_DUTY_CYCLE        = 50,
-            p_CLK1_MULTIPLY_BY       = 2,
+            p_CLK1_MULTIPLY_BY       = 1,
             p_CLK1_PHASE_SHIFT       = 0,
             p_OPERATION_MODE         = "NORMAL",
 
@@ -188,5 +190,10 @@ class ArrowDECAPlatform(IntelPlatform, LUNAPlatform):
                 set_global_assignment -name ENABLE_CONFIGURATION_PINS OFF
                 set_global_assignment -name ENABLE_BOOT_SEL_PIN OFF
                 set_global_assignment -name INTERNAL_FLASH_UPDATE_MODE \"SINGLE IMAGE WITH ERAM\"
+                """,
+            "{{name}}.sdc":
+                super().file_templates.get("{{name}}.sdc") +
+                r"""
+                derive_pll_clocks -create_base_clocks
                 """
         }
