@@ -25,7 +25,7 @@ from fractalmanager import FractalManager
 
 class MandelbrotAccelerator(Elaboratable):
     MAX_PACKET_SIZE = 256
-    USE_ILA = False
+    USE_ILA = True
     ILA_MAX_PACKET_SIZE = 512
 
     def create_descriptors(self):
@@ -111,7 +111,7 @@ class MandelbrotAccelerator(Elaboratable):
         m.submodules.command_fifo = command_fifo = AsyncFIFO(width=8, depth=32, w_domain="usb", r_domain="fast")
         m.submodules.result_fifo  = result_fifo  = AsyncFIFO(width=8+2, depth=4*self.MAX_PACKET_SIZE, w_domain="fast", r_domain="usb")
 
-        m.submodules.fractalmanager = fractalmanager = DomainRenamer("fast")(FractalManager(bitwidth=8*9, fraction_bits=8*8, no_cores=3))
+        m.submodules.fractalmanager = fractalmanager = DomainRenamer("fast")(FractalManager(bitwidth=8*9, fraction_bits=8*8, no_cores=2))
 
         # wire up USB via FIFOs to fractalmanager
         m.d.comb += [
@@ -144,7 +144,7 @@ class MandelbrotAccelerator(Elaboratable):
                 #ep1_out.stream.first,
                 #ep1_out.stream.last,
                 #ep1_out.stream.payload,
-                usb_in_active,
+                #usb_in_active,
                 result_fifo.r_level,
                 ep1_in.stream.ready,
                 ep1_in.stream.valid,
@@ -154,13 +154,13 @@ class MandelbrotAccelerator(Elaboratable):
             ]
 
             signals_bits = sum([s.width for s in signals])
-            depth = 4 * 8 * 1024 #int(33*8*1024/signals_bits)
+            depth = 1 * 8 * 1024 #int(33*8*1024/signals_bits)
             m.submodules.ila = ila = \
                 StreamILA(
                     signals=signals,
                     sample_depth=depth,
                     domain="usb", o_domain="usb",
-                    samples_pretrigger=1024)
+                    samples_pretrigger=128)
 
             stream_ep = USBMultibyteStreamInEndpoint(
                 endpoint_number=3, # EP 3 IN
@@ -171,7 +171,7 @@ class MandelbrotAccelerator(Elaboratable):
 
             m.d.comb += [
                 stream_ep.stream.stream_eq(ila.stream),
-                ila.trigger.eq(usb_in_active | ep1_in.stream.ready & ep1_in.stream.valid),
+                ila.trigger.eq(ep1_in.stream.first),
             ]
 
             ILACoreParameters(ila).pickle()
