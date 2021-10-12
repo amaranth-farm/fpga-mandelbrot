@@ -79,14 +79,22 @@ class FractalManager(Elaboratable):
                         m.d.sync += step[b*8:(b*8+8)].eq(stream_in.payload),
 
                 with m.Default():
-                    m.d.sync += [
-                        command_complete.eq(1),
-                        current_x.eq(bottom_left_corner_x),
-                        current_y.eq(bottom_left_corner_y),
-                        current_pixel_x.eq(0),
-                        current_pixel_y.eq(0),
-                        bytepos.eq(0),
-                    ]
+                    m.d.sync += bytepos.eq(0)
+                    with m.If(stream_in.payload == 0xa5):
+                        m.d.sync += [
+                            command_complete.eq(1),
+                            current_x.eq(bottom_left_corner_x),
+                            current_y.eq(bottom_left_corner_y),
+                            current_pixel_x.eq(0),
+                            current_pixel_y.eq(0),
+                        ]
+                    with m.Else():
+                        m.d.sync += [
+                            bottom_left_corner_x.eq(0),
+                            bottom_left_corner_y.eq(0),
+                            step.eq(0),
+                            max_iterations.eq(64),
+                        ]
 
         # instantiate cores
         cores    = []
@@ -151,17 +159,21 @@ class FractalManager(Elaboratable):
 
 
         # core scheduler FSM
-        with m.FSM() as fsm:
+        with m.FSM(name="scheduler") as fsm:
             m.d.comb += ready.eq(fsm.ongoing("IDLE"))
             with m.State("IDLE"):
                 with m.If(command_complete):
                     m.d.comb += Cat(collect).eq(2**no_cores - 1)
+                    m.d.sync += command_complete.eq(0)
                     m.next = "PICK"
 
             with m.State("PICK"):
                 with m.If(  (current_pixel_x == no_pixels_x)
                           & (current_pixel_y == no_pixels_y)):
-                    m.d.sync += command_complete.eq(0)
+                    m.d.sync += [
+                        current_pixel_x.eq(0),
+                        current_pixel_y.eq(0),
+                    ]
                     m.next = "IDLE"
 
                 with m.Elif(next_core_ready):
@@ -206,7 +218,7 @@ class FractalManager(Elaboratable):
         first_result_sent = Signal()
 
         # result collector FSM
-        with m.FSM() as fsm:
+        with m.FSM(name="result_collector") as fsm:
             with m.State("WAIT"):
                 with m.If(next_result_ready):
                     m.d.sync += current_result.eq(next_result)
@@ -311,6 +323,7 @@ class FractalManagerTest(GatewareTestCase):
             yield command_stream.payload.eq(0xff & (step >> (i * 8)))
             yield
 
+        yield command_stream.payload.eq(0xa5)
         yield
 
         yield command_stream.valid.eq(0)

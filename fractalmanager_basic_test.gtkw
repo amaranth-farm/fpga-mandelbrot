@@ -1,6 +1,6 @@
 [*]
 [*] GTKWave Analyzer v3.3.111 (w)1999-2020 BSI
-[*] Mon Oct 11 20:46:49 2021
+[*] Tue Oct 12 01:39:51 2021
 [*]
 [dumpfile] "test_FractalManagerTest_test_basic.vcd"
 [dumpfile_mtime] "Sat Oct  9 06:13:22 2021"
@@ -9,12 +9,12 @@
 [timestart] 281600
 [size] 3828 2090
 [pos] -1 -1
-*-16.277376 22265000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-19.053253 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] top.
 [sst_width] 526
 [signals_width] 450
 [sst_expanded] 1
-[sst_vpaned_height] 658
+[sst_vpaned_height] 650
 @28
 top.clk
 @200
@@ -106,15 +106,20 @@ top.bottom_left_corner_y[63:0]
 top.step[63:0]
 @28
 top.command_complete
+@22
+top.no_pixels_x[15:0]
+top.no_pixels_y[15:0]
 @200
 -Core Scheduler
 @28
+top.scheduler_state
 top.current_core
 top.next_core
 top.next_core_ready
-top.fsm_state
 @22
+[color] 3
 top.current_pixel_x[15:0]
+[color] 3
 top.current_pixel_y[15:0]
 @40000420
 [fpshift_count] 56
@@ -173,7 +178,7 @@ top.collect_1
 @200
 -Result Collector
 @28
-top.fsm_state$1
+top.result_collector_state
 @24
 top.result_iterations[31:0]
 @28
@@ -190,7 +195,6 @@ top.pixel_stream__payload[7:0]
 @28
 top.pixel_stream__valid
 top.pixel_stream__first
-@29
 top.pixel_stream__last
 [pattern_trace] 1
 [pattern_trace] 0
