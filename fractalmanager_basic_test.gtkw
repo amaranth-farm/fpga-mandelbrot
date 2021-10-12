@@ -1,6 +1,6 @@
 [*]
 [*] GTKWave Analyzer v3.3.111 (w)1999-2020 BSI
-[*] Tue Oct 12 01:39:51 2021
+[*] Tue Oct 12 21:54:23 2021
 [*]
 [dumpfile] "test_FractalManagerTest_test_basic.vcd"
 [dumpfile_mtime] "Sat Oct  9 06:13:22 2021"
@@ -9,9 +9,9 @@
 [timestart] 281600
 [size] 3828 2090
 [pos] -1 -1
-*-19.053253 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-15.404525 21425000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] top.
-[sst_width] 526
+[sst_width] 357
 [signals_width] 450
 [sst_expanded] 1
 [sst_vpaned_height] 650
@@ -28,6 +28,7 @@ top.command_stream__ready
 top.bytepos[15:0]
 top.no_pixels_x[15:0]
 top.no_pixels_y[15:0]
+@24
 top.max_iterations[31:0]
 @40c00420
 [fpshift_count] 56
@@ -130,13 +131,17 @@ top.current_y[63:0]
 -Core0
 @28
 top.core_0.fsm_state
-@22
+@25
 top.core_0.iterations_out[31:0]
 @40000420
 [fpshift_count] 56
 top.core_0.cx_in[63:0]
 [fpshift_count] 56
 top.core_0.cy_in[63:0]
+[fpshift_count] 56
+top.core_0.x[63:0]
+[fpshift_count] 56
+top.core_0.y[63:0]
 @28
 top.core_0.result_read
 top.core_0.result_ready_out
@@ -188,6 +193,11 @@ top.next_result_ready
 @22
 top.result_pixel_x[15:0]
 top.result_pixel_y[15:0]
+@24
+top.result_iterations[31:0]
+@28
+top.result_escape
+top.result_maxed
 @200
 -Output Stream
 @22
