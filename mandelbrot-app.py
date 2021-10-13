@@ -24,6 +24,7 @@ def float2fix(f):
     return int(f*2**scale)
 
 def send_command(bytewidth, view, debug=False):
+    tstart = time.perf_counter()
     command_bytes = struct.pack("HHI", view.width-1, view.height-1, view.max_iterations)
     command_bytes += view.corner_x.to_bytes(bytewidth, byteorder='little', signed=True)
     command_bytes += view.corner_y.to_bytes(bytewidth, byteorder='little', signed=True)
@@ -45,6 +46,9 @@ def send_command(bytewidth, view, debug=False):
             result += r
     except usb.USBError:
         print(f"Got {len(result)} bytes from USB")
+    tusb = time.perf_counter()
+    print(f"USB transfer took: {tusb - tstart:0.4f} seconds")
+
 
     if len(result) > 0:
         first_separator_index = result.index(0xa5)
@@ -56,6 +60,9 @@ def send_command(bytewidth, view, debug=False):
             if debug: print(f"x: {pixel[0]} y: {pixel[1]} iter: {pixel[2]}")
 
         print(f"Total number of pixels: {len(pixels)}")
+
+        tunpack = time.perf_counter()
+        print(f"USB data unpacking took: {tunpack - tusb:0.4f} seconds")
 
         return pixels
 
@@ -132,7 +139,6 @@ if __name__ == "__main__":
         tstart = time.perf_counter()
         pixels = send_command(9, view, debug=False)
         tusb = time.perf_counter()
-        print(f"USB transfer took: {tusb - tstart:0.4f} seconds")
 
         import numpy as np
         from matplotlib.image import imsave
