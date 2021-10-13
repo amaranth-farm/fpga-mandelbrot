@@ -1,15 +1,15 @@
 [*]
 [*] GTKWave Analyzer v3.3.111 (w)1999-2020 BSI
-[*] Tue Oct 12 23:08:00 2021
+[*] Wed Oct 13 03:10:40 2021
 [*]
 [dumpfile] "/devel/HDL/src/deca-mandelbrot/test_FractalManagerTest_test_basic.vcd"
-[dumpfile_mtime] "Tue Oct 12 23:01:21 2021"
-[dumpfile_size] 850573
+[dumpfile_mtime] "Wed Oct 13 03:06:54 2021"
+[dumpfile_size] 422466
 [savefile] "/devel/HDL/src/deca-mandelbrot/fractalmanager_basic_test.gtkw"
-[timestart] 0
+[timestart] 9682900
 [size] 3828 2090
 [pos] -1 -1
-*-21.404526 455600 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-15.543523 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] top.
 [sst_width] 357
 [signals_width] 450
@@ -140,7 +140,6 @@ top.core_0.cx_in[63:0]
 top.core_0.cy_in[63:0]
 @24
 top.pixelx_0[63:0]
-@25
 top.pixely_0[63:0]
 @40000420
 [fpshift_count] 56
@@ -207,6 +206,8 @@ top.result_iterations[31:0]
 @28
 top.result_escape
 top.result_maxed
+@23
+top.result_color[23:0]
 @200
 -Output Stream
 @22

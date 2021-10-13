@@ -210,12 +210,47 @@ class FractalManager(Elaboratable):
 
         pixel_out = self.pixel_stream_out
         result_iterations = Signal(32)
+        result_color      = Signal(24)
         result_pixel_x    = Signal(16)
         result_pixel_y    = Signal(16)
         result_escape     = Signal()
         result_maxed      = Signal()
         send_byte         = Signal(8)
         first_result_sent = Signal()
+
+        #
+        ## convert iterations into color, using
+        # the beautiful colors from the wikipedia mandelbrot images
+        colortable = [
+            [ 66,  30,  15],
+            [ 25,   7,  26],
+            [  9,   1,  47],
+            [  4,   4,  73],
+            [  0,   7, 100],
+            [ 12,  44, 138],
+            [ 24,  82, 177],
+            [ 57, 125, 209],
+            [134, 181, 229],
+            [211, 236, 248],
+            [241, 233, 191],
+            [248, 201,  95],
+            [255, 170,   0],
+            [204, 128,   0],
+            [153,  87,   0],
+            [106,  52,   3],
+        ]
+
+        with m.If(result_escape):
+            with m.Switch(result_iterations[0:4]):
+                for i in range(16):
+                    with m.Case(i):
+                        m.d.comb += [
+                            result_color[0:8]  .eq(colortable[i][0]),
+                            result_color[8:16] .eq(colortable[i][1]),
+                            result_color[16:24].eq(colortable[i][2]),
+                        ]
+        with m.Else():
+            m.d.comb += result_color.eq(0)
 
         # result collector FSM
         with m.FSM(name="result_collector") as fsm:
@@ -255,15 +290,11 @@ class FractalManager(Elaboratable):
                         with m.Case(3):
                             m.d.comb +=  pixel_out.payload.eq(result_pixel_y[8:16])
                         with m.Case(4):
-                            m.d.comb +=  pixel_out.payload.eq(result_iterations[0:8])
+                            m.d.comb +=  pixel_out.payload.eq(result_color[0:8])
                         with m.Case(5):
-                            m.d.comb +=  pixel_out.payload.eq(result_iterations[8:16])
+                            m.d.comb +=  pixel_out.payload.eq(result_color[8:16])
                         with m.Case(6):
-                            m.d.comb +=  pixel_out.payload.eq(result_iterations[16:24])
-                        with m.Case(7):
-                            m.d.comb +=  pixel_out.payload.eq(result_iterations[24:32])
-                        with m.Case(8):
-                            m.d.comb +=  pixel_out.payload.eq((result_escape << 4) | result_maxed)
+                            m.d.comb +=  pixel_out.payload.eq(result_color[16:24])
                         with m.Default():
                             # separator
                             m.d.comb +=  pixel_out.payload.eq(0xa5)

@@ -49,57 +49,23 @@ def send_command(bytewidth, no_pixels_x, no_pixels_y, max_iterations, bottom_lef
 
     if len(result) > 0:
         first_separator_index = result.index(0xa5)
-        if first_separator_index != 9:
+        if first_separator_index != 7:
             print(f"Warning: Chop until index {first_separator_index}")
             result = result[first_separator_index+1:]
-        pixels = [struct.unpack("HHIBx", bytes(p)) for p in [result[i:i+10] for i in range(0, len(result), 10)] if len(p) == 10]
+        pixels = [struct.unpack("HHBBBx", bytes(p)) for p in [result[i:i+8] for i in range(0, len(result), 8)] if len(p) == 8]
         for pixel in pixels:
-            if debug: print(f"x: {pixel[0]} y: {pixel[1]} iterations: {pixel[2]}\t escape: {pixel[3] >> 4} maxed: {pixel[3] & 0xf}")
+            if debug: print(f"x: {pixel[0]} y: {pixel[1]} R: {pixel[2]} G: {pixel[3]} B: {pixel[4]}")
 
         print(f"Total number of pixels: {len(pixels)}")
 
         return pixels
 
-colortable = [
-    [ 66,  30,  15],
-    [ 25,   7,  26],
-    [  9,   1,  47],
-    [  4,   4,  73],
-    [  0,   7, 100],
-    [ 12,  44, 138],
-    [ 24,  82, 177],
-    [ 57, 125, 209],
-    [134, 181, 229],
-    [211, 236, 248],
-    [241, 233, 191],
-    [248, 201,  95],
-    [255, 170,   0],
-    [204, 128,   0],
-    [153,  87,   0],
-    [106,  52,   3],
-]
-
 class MandelWidget(Widget):
     def draw(self, pixels, max_iterations):
         with self.canvas:
-            histogram = [0] * 16
-
             for pixel in pixels:
-                escape = (pixel[3] >> 4) == 1
-                maxed  = pixel[3] & 0x1  == 1
-                if (maxed):
-                    Color(0, 0, 0)
-                if (escape):
-                    i = pixel[2] % len(colortable)
-                    histogram[i] += 1
-                    if debug: print(f"iter: {pixel[2]} max: {max_iterations} i: {i}")
-                    Color(*[c/255.0 for c in colortable[i]])
-
+                Color(*[c/255.0 for c in pixel[2:5]])
                 Point(points=(pixel[0], pixel[1]), pointsize=1)
-                if escape == maxed:
-                    print(f"ESCAPED && MAXXED: {pixel}")
-
-            print(str(histogram))
 
 class MandelGUI(App):
     def __init__(self, *, max_iterations=255, **kwargs):
