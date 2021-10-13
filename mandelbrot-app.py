@@ -3,25 +3,20 @@
 # this is a throwaway prototype
 # so the code is highly experimental
 
+import time
 import struct
 import usb
-
-from kivy.app           import App
-from kivy.uix.button    import Button
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.widget    import Widget
-from kivy.graphics      import Point, Color
-from functools          import partial
+import code
+import sys
+import subprocess
 
 dev=usb.core.find(idVendor=0x1209, idProduct=0xDECA)
 
 debug=False
 if debug: print(dev)
 
-import struct
-import time
-
 scale = 8*8
+
 
 def send_command(bytewidth, no_pixels_x, no_pixels_y, max_iterations, bottom_left_corner_x, bottom_left_corner_y, step, debug=False):
     command_bytes = struct.pack("HHI", no_pixels_x, no_pixels_y, max_iterations)
@@ -45,7 +40,7 @@ def send_command(bytewidth, no_pixels_x, no_pixels_y, max_iterations, bottom_lef
             if debug: print(str(r))
             result += r
     except usb.USBError:
-        print(f"Got Total: {len(result)}")
+        print(f"Got {len(result)} bytes from USB")
 
     if len(result) > 0:
         first_separator_index = result.index(0xa5)
@@ -60,43 +55,18 @@ def send_command(bytewidth, no_pixels_x, no_pixels_y, max_iterations, bottom_lef
 
         return pixels
 
-class MandelWidget(Widget):
-    def draw(self, pixels, max_iterations):
-        with self.canvas:
-            for pixel in pixels:
-                Color(*[c/255.0 for c in pixel[2:5]])
-                Point(points=(pixel[0], pixel[1]), pointsize=1)
-
-class MandelGUI(App):
-    def __init__(self, *, max_iterations=255, **kwargs):
-        self.max_iterations = max_iterations
-        super().__init__(**kwargs)
-
-    def render(self, instance, *args):
-        pixels = send_command(9, image_width, image_height, self.max_iterations, corner_x, corner_y, step)
-        self.image.draw(pixels, self.max_iterations)
-        pass
-
-    def build(self):
-        self.mainBox = BoxLayout(orientation='vertical', spacing=10)
-        self.buttonBox = BoxLayout(orientation='horizontal', spacing=10)
-        self.buttonBox.size_hint_max_y = 50
-
-        self.renderButton = Button(text='Render', height=48)
-        self.renderButton.bind(on_press=partial(self.render, self.renderButton))
-
-        self.image = MandelWidget()
-        self.buttonBox.add_widget(self.renderButton)
-        self.mainBox.add_widget(self.buttonBox)
-        self.mainBox.add_widget(self.image)
-        return self.mainBox
+def openImage(path):
+    imageViewerFromCommandLine = {'linux':'xdg-open',
+                                  'win32':'explorer',
+                                  'darwin':'open'}[sys.platform]
+    subprocess.run([imageViewerFromCommandLine, path])
 
 corner_x = -2 << scale
 corner_y = -5 << (scale - 2)
 step = 1 << (scale - 9)
 
-image_width  = 1920 # 256+128
-image_height = 1300 # 256+64
+image_width  =  1920 # 256+128
+image_height =  1300 # 256+64
 
 def fix2float(fix):
     return fix/2**scale
@@ -107,10 +77,6 @@ print(f"right_corner_x: {(corner_x + image_width*step)/2**scale} upper_corner_y:
 from sys import argv
 if __name__ == "__main__":
     if len(argv) > 1:
-        if argv[1] == "gui":
-            app = MandelGUI(max_iterations=256)
-            app.run()
-
         if argv[1] == "plot":
             p = send_command(9, image_width, image_height, 256, corner_x, corner_y, step, debug=False)
             r = [e for e in p if e[3] & 0x1 > 0]
@@ -125,9 +91,39 @@ if __name__ == "__main__":
 
             # To show the plot
             plt.show()
-
-            import code
             code.interact(local=locals())
 
+        if argv[1] == "debug":
+            send_command(9, image_width, image_height, 255, corner_x, corner_y, step, debug=True)
+            code.interact(local=locals())
     else:
-        send_command(9, image_width, image_height, 255, corner_x, corner_y, step, debug=True)
+        pixels = send_command(9, image_width - 1, image_height - 1, 255, corner_x, corner_y, step)
+
+        import numpy as np
+        from matplotlib.image import imsave
+
+        p = np.zeros((image_height, image_width, 3))
+
+        for pixel in pixels:
+            x     = pixel[0]
+            y     = pixel[1]
+            red   = pixel[2] / 255.0
+            green = pixel[3] / 255.0
+            blue  = pixel[4] / 255.0
+
+            if x >= image_width:
+                print(f"rogue pixel: {str(pixel)}")
+                continue
+            if y >= image_height:
+                print(f"rogue pixel: {str(pixel)}")
+                continue
+
+            p[y][x][0] = red
+            p[y][x][1] = green
+            p[y][x][2] = blue
+
+        pixels = []
+
+        outfilename = 'mandelbrot.png'
+        imsave(outfilename, p)
+        openImage(outfilename)
