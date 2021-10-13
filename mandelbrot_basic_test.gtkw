@@ -1,6 +1,6 @@
 [*]
 [*] GTKWave Analyzer v3.3.111 (w)1999-2020 BSI
-[*] Sat Oct  9 05:49:48 2021
+[*] Wed Oct 13 00:52:29 2021
 [*]
 [dumpfile] "test_MandelbrotTest_test_basic.vcd"
 [dumpfile_mtime] "Sat Oct  9 01:11:25 2021"
@@ -19,6 +19,8 @@
 top.clk
 @40000420
 [fpshift_count] 56
+top.four[63:0]
+[fpshift_count] 56
 top.cx_in[63:0]
 [fpshift_count] 56
 top.cy_in[63:0]
@@ -30,10 +32,8 @@ top.fsm_state
 top.busy_out
 [color] 3
 top.result_ready_out
-@29
 [color] 3
 top.result_read_in
-@28
 [color] 3
 top.result_read
 [color] 3

@@ -48,6 +48,7 @@ class Mandelbrot(Elaboratable):
 
         # pipeline stage 2
         xx_plus_yy    = Signal(signed(bitwidth))
+        xx_minus_yy   = Signal(signed(bitwidth))
         two_xy_stage2 = Signal(signed(bitwidth))
 
         # pipeline stage 3
@@ -96,12 +97,13 @@ class Mandelbrot(Elaboratable):
                 # stage 2
                 two_xy_stage2 .eq(two_xy_stage1),
                 xx_plus_yy    .eq(xx + yy),
+                xx_minus_yy   .eq(xx - yy),
             ]
 
         with m.If(stage_enable[2]):
             m.d.sync += [
                 # stage 3
-                x             .eq(xx_plus_yy    + self.cx_in),
+                x             .eq(xx_minus_yy   + self.cx_in),
                 y             .eq(two_xy_stage2 + self.cy_in),
                 escape        .eq(xx_plus_yy > four),
                 iteration     .eq(iteration + 1),
@@ -163,7 +165,7 @@ class MandelbrotTest(GatewareTestCase):
         done = 0
         yield from self.advance_cycles(3)
         while done == 0:
-            x = ((x * x) >> scale) + start_x
+            x = ((x * x) >> scale) - ((y * y) >> scale) + start_x
             y = ((x * y) >> (scale - 1)) + start_y
             dut_x = (yield dut.x)
             dut_y = (yield dut.y)
