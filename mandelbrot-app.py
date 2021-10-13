@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-#%%
-import os
+
+# this is a throwaway prototype
+# so the code is highly experimental
+
 import struct
 import usb
 
@@ -8,7 +10,7 @@ from kivy.app           import App
 from kivy.uix.button    import Button
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.widget    import Widget
-from kivy.graphics      import Canvas, Point, Color
+from kivy.graphics      import Point, Color
 from functools          import partial
 
 dev=usb.core.find(idVendor=0x1209, idProduct=0xDECA)
@@ -144,7 +146,7 @@ if __name__ == "__main__":
             app.run()
 
         if argv[1] == "plot":
-            p = send_command(9, image_width, image_height, 2048, corner_x, corner_y, step, debug=False)
+            p = send_command(9, image_width, image_height, 256, corner_x, corner_y, step, debug=False)
             r = [e for e in p if e[3] & 0x1 > 0]
             x = [fix2float(corner_x) + fix2float(step) * e[0] for e in r]
             y = [fix2float(corner_y) + fix2float(step) * e[1] for e in r]
