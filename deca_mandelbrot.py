@@ -25,7 +25,7 @@ from fractalmanager import FractalManager
 
 class MandelbrotAccelerator(Elaboratable):
     MAX_PACKET_SIZE = 256
-    USE_ILA = True
+    USE_ILA = False
     ILA_MAX_PACKET_SIZE = 512
 
     def create_descriptors(self):
@@ -111,7 +111,7 @@ class MandelbrotAccelerator(Elaboratable):
         m.submodules.command_fifo = command_fifo = AsyncFIFO(width=8, depth=32, w_domain="usb", r_domain="fast")
         m.submodules.result_fifo  = result_fifo  = AsyncFIFO(width=8+2, depth=4*self.MAX_PACKET_SIZE, w_domain="fast", r_domain="usb")
 
-        m.submodules.fractalmanager = fractalmanager = DomainRenamer("fast")(FractalManager(bitwidth=8*9, fraction_bits=8*8, no_cores=2))
+        m.submodules.fractalmanager = fractalmanager = DomainRenamer("fast")(FractalManager(bitwidth=8*9, fraction_bits=8*8, no_cores=3))
 
         # wire up USB via FIFOs to fractalmanager
         m.d.comb += [
