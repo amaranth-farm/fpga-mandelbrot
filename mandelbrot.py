@@ -39,7 +39,7 @@ class Mandelbrot(Elaboratable):
         iteration = Signal(32)
 
         # pipeline stages enable signals
-        stage_enable = Signal(5)
+        stage_enable = Signal(4)
 
         # pipeline stage 1
         two_xy = Signal(signed(bitwidth))
@@ -81,9 +81,9 @@ class Mandelbrot(Elaboratable):
         # the product has one bit more than necessary
         # because we want to preserve the bit of precision
         # for the factor 2xy
-        factor1           = Signal(bitwidth)
-        factor2           = Signal(bitwidth)
-        two_times_product = Signal(bitwidth)
+        factor1           = Signal(signed(bitwidth))
+        factor2           = Signal(signed(bitwidth))
+        two_times_product = Signal(signed(bitwidth))
 
         m.d.comb += two_times_product.eq((factor1 * factor2) >> (scale - 1))
 
@@ -125,17 +125,12 @@ class Mandelbrot(Elaboratable):
             ]
             m.d.sync += [
                 two_xy.eq(two_times_product),
-            ]
-
-        with m.If(stage_enable[3]):
-            # stage 3
-            m.d.sync += [
                 xx_plus_yy    .eq(xx + yy),
                 xx_minus_yy   .eq(xx - yy),
             ]
 
-        with m.If(stage_enable[4]):
-            # stage 4
+        with m.If(stage_enable[3]):
+            # stage 3
             m.d.sync += [
                 x             .eq(xx_minus_yy   + self.cx_in),
                 y             .eq(two_xy        + self.cy_in),
@@ -183,10 +178,6 @@ class Mandelbrot(Elaboratable):
 
             with m.State("S3"):
                 m.d.comb += stage_enable.eq(1 << 3)
-                m.next = "S4"
-
-            with m.State("S4"):
-                m.d.comb += stage_enable.eq(1 << 4)
                 m.next = "S0"
 
         return m
@@ -200,17 +191,19 @@ class MandelbrotTest(GatewareTestCase):
         x = start_x
         y = start_y
         done = 0
-        yield from self.advance_cycles(5)
+        yield from self.advance_cycles(4)
         while done == 0:
-            x = ((x * x) >> scale) - ((y * y) >> scale) + start_x
-            y = ((x * y) >> (scale - 1)) + start_y
+            x_new = ((x * x) >> scale) - ((y * y) >> scale) + start_x
+            y_new = ((x * y) >> (scale - 1)) + start_y
+            x = x_new
+            y = y_new
             dut_x = (yield dut.x)
             dut_y = (yield dut.y)
             print(f"dut_x: {hex(dut_x)} python x: {hex(x)} | dut_y: {hex(dut_y)} python y: {hex(y)}")
             if check:
                 self.assertEqual(dut_x, x)
                 self.assertEqual(dut_y, y)
-            yield from self.advance_cycles(5)
+            yield from self.advance_cycles(4)
             done = (yield dut.maxed_out) | (yield dut.escape_out)
 
         self.assertEqual(done, 1)
@@ -227,19 +220,19 @@ class MandelbrotTest(GatewareTestCase):
         start_x = 1 << scale
         yield dut.cx_in.eq(start_x)
         yield dut.cy_in.eq(0)
-        yield dut.max_iterations_in.eq(6)
+        yield dut.max_iterations_in.eq(110)
         yield
         yield from self.pulse(dut.start_in)
         yield
         yield
 
         self.assertEqual((yield dut.x), start_x)
-        yield from self.advance_cycles(5)
+        yield from self.advance_cycles(4)
 
         # 1 * 1 + 1 = 2
         first_iter = start_x + start_x
         self.assertEqual((yield dut.x), first_iter)
-        yield from self.advance_cycles(5)
+        yield from self.advance_cycles(4)
 
         # 2 * 2 + 1 = 5
         second_iter = (first_iter * first_iter >> scale) + start_x
@@ -247,7 +240,7 @@ class MandelbrotTest(GatewareTestCase):
         yield
         yield
         self.assertGreater((yield dut.xx_plus_yy), 4 << scale)
-        yield from self.advance_cycles(5)
+        yield from self.advance_cycles(4)
 
         self.assertEqual((yield dut.escape_out), 1)
 
@@ -275,7 +268,7 @@ class MandelbrotTest(GatewareTestCase):
         yield
         yield from self.pulse(dut.start_in)
         yield
-        yield from self.iterate_mandel(scale, dut, start_x, start_y, check=False)
+        yield from self.iterate_mandel(scale, dut, start_x, start_y)
 
         yield
         yield
@@ -287,7 +280,7 @@ class MandelbrotTest(GatewareTestCase):
         yield
         yield from self.pulse(dut.start_in)
         yield
-        yield from self.iterate_mandel(scale, dut, start_x, start_y, check=False)
+        yield from self.iterate_mandel(scale, dut, start_x, start_y)
         yield
         self.assertEqual((yield dut.result_ready_out), 0)
         yield
