@@ -39,19 +39,19 @@ class Mandelbrot(Elaboratable):
         iteration = Signal(32)
 
         # pipeline stages enable signals
-        stage_enable = Signal(3)
+        stage_enable = Signal(5)
 
         # pipeline stage 1
-        two_xy_stage1 = Signal(signed(bitwidth))
+        two_xy = Signal(signed(bitwidth))
         xx     = Signal(signed(bitwidth))
         yy     = Signal(signed(bitwidth))
 
         # pipeline stage 2
         xx_plus_yy    = Signal(signed(bitwidth))
         xx_minus_yy   = Signal(signed(bitwidth))
-        two_xy_stage2 = Signal(signed(bitwidth))
 
         # pipeline stage 3
+        x             = Signal(signed(bitwidth))
         x             = Signal(signed(bitwidth))
         y             = Signal(signed(bitwidth))
         escape        = Signal()
@@ -77,6 +77,16 @@ class Mandelbrot(Elaboratable):
             four.eq(Const(4, signed(bitwidth)) << scale),
         ]
 
+        # instantiate a multiplier for reuse
+        # the product has one bit more than necessary
+        # because we want to preserve the bit of precision
+        # for the factor 2xy
+        factor1           = Signal(bitwidth)
+        factor2           = Signal(bitwidth)
+        two_times_product = Signal(bitwidth)
+
+        m.d.comb += two_times_product.eq((factor1 * factor2) >> (scale - 1))
+
         if test:
             m.d.comb += [
                 self.x.eq(x),
@@ -84,27 +94,51 @@ class Mandelbrot(Elaboratable):
                 self.xx_plus_yy.eq(xx_plus_yy),
             ]
 
+        # processing pipleline
+        # here still used in a sequential manner
+        # to be made fully pipelined later
         with m.If(stage_enable[0]):
+            # stage 0
+            m.d.comb += [
+                factor1.eq(x),
+                factor2.eq(x),
+            ]
             m.d.sync += [
-                # stage 1
-                two_xy_stage1 .eq((x * y) >> (scale - 1)),
-                xx            .eq((x * x) >> scale),
-                yy            .eq((y * y) >> scale),
+                xx.eq(two_times_product >> 1),
             ]
 
         with m.If(stage_enable[1]):
+            # stage 1
+            m.d.comb += [
+                factor1.eq(y),
+                factor2.eq(y),
+            ]
             m.d.sync += [
-                # stage 2
-                two_xy_stage2 .eq(two_xy_stage1),
+                yy.eq(two_times_product >> 1),
+            ]
+
+        with m.If(stage_enable[2]):
+            # stage 2
+            m.d.comb += [
+                factor1.eq(x),
+                factor2.eq(y),
+            ]
+            m.d.sync += [
+                two_xy.eq(two_times_product),
+            ]
+
+        with m.If(stage_enable[3]):
+            # stage 3
+            m.d.sync += [
                 xx_plus_yy    .eq(xx + yy),
                 xx_minus_yy   .eq(xx - yy),
             ]
 
-        with m.If(stage_enable[2]):
+        with m.If(stage_enable[4]):
+            # stage 4
             m.d.sync += [
-                # stage 3
                 x             .eq(xx_minus_yy   + self.cx_in),
-                y             .eq(two_xy_stage2 + self.cy_in),
+                y             .eq(two_xy        + self.cy_in),
                 escape        .eq(xx_plus_yy > four),
                 iteration     .eq(iteration + 1),
                 maxed_out     .eq(iteration >= self.max_iterations_in),
@@ -115,42 +149,45 @@ class Mandelbrot(Elaboratable):
             with m.State("IDLE"):
                 with m.If(self.start_in):
                     m.d.sync += [
-                        # stage 0
                         x             .eq(self.cx_in),
                         y             .eq(self.cy_in),
-                        # stage 1
-                        two_xy_stage1 .eq(0),
+                        two_xy        .eq(0),
                         xx            .eq(0),
                         yy            .eq(0),
-                        # stage 2
-                        two_xy_stage2 .eq(0),
                         xx_plus_yy    .eq(0),
 
-                        # non-pipelined
                         escape                .eq(0),
                         maxed_out             .eq(0),
                         iteration             .eq(0),
                         self.result_ready_out .eq(0),
                         result_read           .eq(0),
                     ]
-                    m.next = "S1"
+                    m.next = "S0"
 
-            with m.State("S1"):
-                m.d.comb += stage_enable.eq(0b001)
+            with m.State("S0"):
+                m.d.comb += stage_enable.eq(1)
                 with m.If(escape | maxed_out):
                     m.d.comb += self.done_out.eq(1)
                     m.d.sync += self.result_ready_out.eq(1)
                     m.next = "IDLE"
                 with m.Else():
-                    m.next = "S2"
+                    m.next = "S1"
+
+            with m.State("S1"):
+                m.d.comb += stage_enable.eq(1 << 1)
+                m.next = "S2"
 
             with m.State("S2"):
-                m.d.comb += stage_enable.eq(0b010)
+                m.d.comb += stage_enable.eq(1 << 2)
                 m.next = "S3"
 
             with m.State("S3"):
-                m.d.comb += stage_enable.eq(0b100)
-                m.next = "S1"
+                m.d.comb += stage_enable.eq(1 << 3)
+                m.next = "S4"
+
+            with m.State("S4"):
+                m.d.comb += stage_enable.eq(1 << 4)
+                m.next = "S0"
 
         return m
 
@@ -163,7 +200,7 @@ class MandelbrotTest(GatewareTestCase):
         x = start_x
         y = start_y
         done = 0
-        yield from self.advance_cycles(3)
+        yield from self.advance_cycles(5)
         while done == 0:
             x = ((x * x) >> scale) - ((y * y) >> scale) + start_x
             y = ((x * y) >> (scale - 1)) + start_y
@@ -173,7 +210,7 @@ class MandelbrotTest(GatewareTestCase):
             if check:
                 self.assertEqual(dut_x, x)
                 self.assertEqual(dut_y, y)
-            yield from self.advance_cycles(3)
+            yield from self.advance_cycles(5)
             done = (yield dut.maxed_out) | (yield dut.escape_out)
 
         self.assertEqual(done, 1)
@@ -197,18 +234,20 @@ class MandelbrotTest(GatewareTestCase):
         yield
 
         self.assertEqual((yield dut.x), start_x)
-        yield from self.advance_cycles(3)
+        yield from self.advance_cycles(5)
 
         # 1 * 1 + 1 = 2
         first_iter = start_x + start_x
         self.assertEqual((yield dut.x), first_iter)
-        yield from self.advance_cycles(3)
+        yield from self.advance_cycles(5)
 
         # 2 * 2 + 1 = 5
         second_iter = (first_iter * first_iter >> scale) + start_x
         self.assertEqual((yield dut.x), second_iter)
+        yield
+        yield
         self.assertGreater((yield dut.xx_plus_yy), 4 << scale)
-        yield from self.advance_cycles(3)
+        yield from self.advance_cycles(5)
 
         self.assertEqual((yield dut.escape_out), 1)
 
