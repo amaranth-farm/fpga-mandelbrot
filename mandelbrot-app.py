@@ -48,12 +48,12 @@ def send_command(bytewidth, view, debug=False):
 
     if len(result) > 0:
         first_separator_index = result.index(0xa5)
-        if first_separator_index != 7:
+        if first_separator_index != 5:
             print(f"Warning: Chop until index {first_separator_index}")
             result = result[first_separator_index+1:]
-        pixels = [struct.unpack("HHBBBx", bytes(p)) for p in [result[i:i+8] for i in range(0, len(result), 8)] if len(p) == 8]
+        pixels = [struct.unpack("HHBx", bytes(p)) for p in [result[i:i+6] for i in range(0, len(result), 6)] if len(p) == 6]
         for pixel in pixels:
-            if debug: print(f"x: {pixel[0]} y: {pixel[1]} R: {pixel[2]} G: {pixel[3]} B: {pixel[4]}")
+            if debug: print(f"x: {pixel[0]} y: {pixel[1]} iter: {pixel[2]}")
 
         print(f"Total number of pixels: {len(pixels)}")
 
@@ -85,6 +85,27 @@ default_view = FractalView(center_x=-0.75,    center_y=0,             radius=2.5
 swirl        = FractalView(center_x=-0.74791, center_y=0.0888909763, radius=6.9921e-5,   max_iterations=4096)
 
 view = default_view
+
+# the beautiful colors from the wikipedia
+# mandelbrot page fractals
+colortable = [
+    [ 66,  30,  15],
+    [ 25,   7,  26],
+    [  9,   1,  47],
+    [  4,   4,  73],
+    [  0,   7, 100],
+    [ 12,  44, 138],
+    [ 24,  82, 177],
+    [ 57, 125, 209],
+    [134, 181, 229],
+    [211, 236, 248],
+    [241, 233, 191],
+    [248, 201,  95],
+    [255, 170,   0],
+    [204, 128,   0],
+    [153,  87,   0],
+    [106,  52,   3],
+]
 
 from sys import argv
 if __name__ == "__main__":
@@ -121,9 +142,6 @@ if __name__ == "__main__":
         for pixel in pixels:
             x     = pixel[0]
             y     = pixel[1]
-            red   = pixel[2] / 255.0
-            green = pixel[3] / 255.0
-            blue  = pixel[4] / 255.0
 
             if x >= view.width:
                 print(f"rogue pixel: {str(pixel)}")
@@ -132,9 +150,12 @@ if __name__ == "__main__":
                 print(f"rogue pixel: {str(pixel)}")
                 continue
 
-            p[y][x][0] = red
-            p[y][x][1] = green
-            p[y][x][2] = blue
+            red, green, blue = colortable[pixel[2] & 0xf]
+            maxed = pixel[2] >> 7
+            if not maxed > 0:
+                p[y][x][0] = red   / 255.0
+                p[y][x][1] = green / 255.0
+                p[y][x][2] = blue  / 255.0
 
         pixels = []
 
