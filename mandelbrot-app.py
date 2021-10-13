@@ -97,7 +97,10 @@ if __name__ == "__main__":
             send_command(9, image_width, image_height, 255, corner_x, corner_y, step, debug=True)
             code.interact(local=locals())
     else:
+        tstart = time.perf_counter()
         pixels = send_command(9, image_width - 1, image_height - 1, 255, corner_x, corner_y, step)
+        tusb = time.perf_counter()
+        print(f"USB transfer took: {tusb - tstart:0.4f} seconds")
 
         import numpy as np
         from matplotlib.image import imsave
@@ -124,6 +127,11 @@ if __name__ == "__main__":
 
         pixels = []
 
+        pix_conv = time.perf_counter()
+        print(f"converting pixels took: {pix_conv - tusb:0.4f} seconds")
+
         outfilename = 'mandelbrot.png'
         imsave(outfilename, p)
+        img_save = time.perf_counter()
+        print(f"saving image took: {img_save - pix_conv:0.4f} seconds")
         openImage(outfilename)
