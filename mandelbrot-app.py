@@ -9,6 +9,7 @@ import usb
 import code
 import sys
 import subprocess
+import threading, queue
 
 dev=usb.core.find(idVendor=0x1209, idProduct=0xDECA)
 
@@ -22,6 +23,8 @@ def fix2float(fix):
 
 def float2fix(f):
     return int(f*2**scale)
+
+pixel_queue = queue.Queue()
 
 def send_command(bytewidth, view, debug=False):
     tstart = time.perf_counter()
@@ -44,27 +47,14 @@ def send_command(bytewidth, view, debug=False):
             if debug: print("Got: "+ str(len(r)))
             if debug: print(str(r))
             result += r
+            while len(result) >= 6:
+                packet, result = (result[:6], result[6:])
+                assert packet[-1] == 0xa5
+                pixel_queue.put(packet[:-1])
     except usb.USBError:
         print(f"Got {len(result)} bytes from USB")
     tusb = time.perf_counter()
     print(f"USB transfer took: {tusb - tstart:0.4f} seconds")
-
-
-    if len(result) > 0:
-        first_separator_index = result.index(0xa5)
-        if first_separator_index != 5:
-            print(f"Warning: Chop until index {first_separator_index}")
-            result = result[first_separator_index+1:]
-        pixels = [struct.unpack("HHBx", bytes(p)) for p in [result[i:i+6] for i in range(0, len(result), 6)] if len(p) == 6]
-        for pixel in pixels:
-            if debug: print(f"x: {pixel[0]} y: {pixel[1]} iter: {pixel[2]}")
-
-        print(f"Total number of pixels: {len(pixels)}")
-
-        tunpack = time.perf_counter()
-        print(f"USB data unpacking took: {tunpack - tusb:0.4f} seconds")
-
-        return pixels
 
 def openImage(path):
     imageViewerFromCommandLine = {'linux':'xdg-open',
@@ -117,57 +107,67 @@ colortable = [
 from sys import argv
 if __name__ == "__main__":
     if len(argv) > 1:
-        if argv[1] == "plot":
-            p = send_command(9, view, debug=False)
-            r = [e for e in p if e[3] & 0x1 > 0]
-            x = [fix2float(view.corner_x) + fix2float(view.step) * e[0] for e in r]
-            y = [fix2float(view.corner_y) + fix2float(view.step) * e[1] for e in r]
+        if False: # TODO: make multithreaded
+            if argv[1] == "plot":
+                p = send_command(9, view, debug=False)
+                r = [e for e in p if e[3] & 0x1 > 0]
+                x = [fix2float(view.corner_x) + fix2float(view.step) * e[0] for e in r]
+                y = [fix2float(view.corner_y) + fix2float(view.step) * e[1] for e in r]
 
-            coords = list(zip(x, y))
-            print(coords)
+                coords = list(zip(x, y))
+                print(coords)
 
-            import matplotlib.pyplot as plt
-            plt.scatter(x, y, c ="black")
+                import matplotlib.pyplot as plt
+                plt.scatter(x, y, c ="black")
 
-            # To show the plot
-            plt.show()
+                # To show the plot
+                plt.show()
 
-        if argv[1] == "debug":
-            send_command(9, view, debug=True)
-            code.interact(local=locals())
+            if argv[1] == "debug":
+                send_command(9, view, debug=True)
+                code.interact(local=locals())
     else:
         tstart = time.perf_counter()
-        pixels = send_command(9, view, debug=False)
-        tusb = time.perf_counter()
+
+        usb_reader = lambda: send_command(9, view, debug=False)
+        usb_thread = threading.Thread(target=usb_reader, daemon=True)
+        usb_thread.start()
 
         import numpy as np
         from matplotlib.image import imsave
 
         p = np.zeros((view.height, view.width, 3))
 
-        for pixel in pixels:
-            x     = pixel[0]
-            y     = pixel[1]
+        def unpacker():
+            while True:
+                pixel_bytes = pixel_queue.get()
+                pixel = struct.unpack("HHB", bytes(pixel_bytes))
+                x     = pixel[0]
+                y     = pixel[1]
 
-            if x >= view.width:
-                print(f"rogue pixel: {str(pixel)}")
-                continue
-            if y >= view.height:
-                print(f"rogue pixel: {str(pixel)}")
-                continue
+                if x >= view.width:
+                    print(f"rogue pixel: {str(pixel)}")
+                    continue
+                if y >= view.height:
+                    print(f"rogue pixel: {str(pixel)}")
+                    continue
 
-            red, green, blue = colortable[pixel[2] & 0xf]
-            maxed = pixel[2] >> 7
-            if not maxed > 0:
-                p[y][x][0] = red   / 255.0
-                p[y][x][1] = green / 255.0
-                p[y][x][2] = blue  / 255.0
+                red, green, blue = colortable[pixel[2] & 0xf]
+                maxed = pixel[2] >> 7
+                if not maxed > 0:
+                    p[y][x][0] = red   / 255.0
+                    p[y][x][1] = green / 255.0
+                    p[y][x][2] = blue  / 255.0
 
-        pixels = []
+                pixel_queue.task_done()
+
+        unpacker_thread = threading.Thread(target=unpacker, daemon=True)
+        unpacker_thread.start()
+
+        pixel_queue.join()
+        usb_thread.join()
 
         pix_conv = time.perf_counter()
-        print(f"converting pixels took: {pix_conv - tusb:0.4f} seconds")
-
         outfilename = 'mandelbrot.png'
         imsave(outfilename, p)
         img_save = time.perf_counter()
