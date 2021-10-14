@@ -4,7 +4,7 @@ This is a hobby project to explore parallel computation/pipelining
 on a FPGA.
 
 ## current status
-* working: two 72 bit fixed point mandelbrot 9 cores run at 60 MHz
+* working: nine 72 bit fixed point mandelbrot cores run at 60 MHz
 * still needs improvement: better resource usage, pipelining, more efficient USB data transfer
 * very rough client app with hardwired parameters
 * produces beautiful images:

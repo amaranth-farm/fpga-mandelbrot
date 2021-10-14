@@ -56,16 +56,13 @@ class MandelbrotAccelerator(Elaboratable):
                     e.bEndpointAddress = USBDirection.IN.to_endpoint_address(1) # EP 1 IN
                     e.wMaxPacketSize   = self.MAX_PACKET_SIZE
 
-            with configDescr.InterfaceDescriptor() as i:
-                i.bInterfaceNumber = 1
-
                 with i.EndpointDescriptor() as e:
                     e.bEndpointAddress = USBDirection.OUT.to_endpoint_address(1) # EP 1 OUT
                     e.wMaxPacketSize   = self.MAX_PACKET_SIZE
 
             if self.USE_ILA:
                 with configDescr.InterfaceDescriptor() as i:
-                    i.bInterfaceNumber = 2
+                    i.bInterfaceNumber = 1
 
                     with i.EndpointDescriptor() as e:
                         e.bEndpointAddress = USBDirection.IN.to_endpoint_address(3) # EP 3 IN
