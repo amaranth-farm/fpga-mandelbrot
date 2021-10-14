@@ -50,11 +50,12 @@ def send_command(bytewidth, view, debug=False):
             while len(result) >= 6:
                 packet, result = (result[:6], result[6:])
                 assert packet[-1] == 0xa5
-                pixel_queue.put(packet[:-1])
+                pixel = struct.unpack("HHBx", bytes(packet))
+                pixel_queue.put(pixel)
     except usb.USBError:
         print(f"Got {len(result)} bytes from USB")
     tusb = time.perf_counter()
-    print(f"USB transfer took: {tusb - tstart:0.4f} seconds")
+    print(f"USB transfer+unpacking took: {tusb - tstart:0.4f} seconds")
 
 def openImage(path):
     imageViewerFromCommandLine = {'linux':'xdg-open',
@@ -78,8 +79,8 @@ class FractalView():
             print(f"right_corner_x: {(corner_x + width*self.step)/2**scale} upper_corner_y: {(corner_y + height*self.step)/2**scale}")
 
 
-default_view = FractalView(center_x=-0.75,    center_y=0,             radius=2.5,         max_iterations=170)
-swirl        = FractalView(center_x=-0.74791, center_y=0.0888909763, radius=6.9921e-5,   max_iterations=4096)
+default_view = FractalView(center_x=-0.75,    center_y=0,             radius=2.5,         max_iterations=170, width=1550, height=1080)
+swirl        = FractalView(center_x=-0.74791, center_y=0.0888909763,  radius=6.9921e-5,   max_iterations=4096)
 
 view = default_view
 
@@ -140,8 +141,7 @@ if __name__ == "__main__":
 
         def unpacker():
             while True:
-                pixel_bytes = pixel_queue.get()
-                pixel = struct.unpack("HHB", bytes(pixel_bytes))
+                pixel = pixel_queue.get()
                 x     = pixel[0]
                 y     = pixel[1]
 
