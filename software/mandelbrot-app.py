@@ -108,25 +108,9 @@ colortable = [
 from sys import argv
 if __name__ == "__main__":
     if len(argv) > 1:
-        if False: # TODO: make multithreaded
-            if argv[1] == "plot":
-                p = send_command(9, view, debug=False)
-                r = [e for e in p if e[3] & 0x1 > 0]
-                x = [fix2float(view.corner_x) + fix2float(view.step) * e[0] for e in r]
-                y = [fix2float(view.corner_y) + fix2float(view.step) * e[1] for e in r]
-
-                coords = list(zip(x, y))
-                print(coords)
-
-                import matplotlib.pyplot as plt
-                plt.scatter(x, y, c ="black")
-
-                # To show the plot
-                plt.show()
-
-            if argv[1] == "debug":
-                send_command(9, view, debug=True)
-                code.interact(local=locals())
+        if argv[1] == "debug":
+            send_command(9, view, debug=True)
+            code.interact(local=locals())
     else:
         tstart = time.perf_counter()
 
