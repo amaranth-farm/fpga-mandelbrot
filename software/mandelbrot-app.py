@@ -161,10 +161,13 @@ if __name__ == "__main__":
                 def painter(self):
                     drawing_start = time.perf_counter()
                     try:
+                        cr = cairo.Context(self.surface)
+                        pixel_count = 0
                         while True:
                             # get() will exit this thread if the
                             # queue is empty
                             pixel = pixel_queue.get()
+                            pixel_count += 1
 
                             x     = pixel[0]
                             y     = pixel[1]
@@ -177,7 +180,6 @@ if __name__ == "__main__":
                             maxed = pixel[2] >> 7
 
                             def draw_pixel():
-                                cr = cairo.Context(self.surface)
                                 if not maxed:
                                     cr.set_source_rgb(red, green, blue)
                                 else:
@@ -186,7 +188,9 @@ if __name__ == "__main__":
                                 cr.rectangle(x, y, 1.5, 1.5)
                                 cr.fill()
                                 self.surface.mark_dirty_rectangle(x, y, 1, 1)
-                                self.canvas.queue_draw()
+                                if pixel_count % 500 == 0:
+                                    self.canvas.queue_draw()
+
                                 return False
 
                             Gdk.threads_enter()
