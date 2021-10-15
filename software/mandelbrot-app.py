@@ -187,7 +187,6 @@ if __name__ == "__main__":
 
                                 cr.rectangle(x, y, 1.5, 1.5)
                                 cr.fill()
-                                self.surface.mark_dirty_rectangle(x, y, 1, 1)
                                 if pixel_count % 500 == 0:
                                     self.canvas.queue_draw()
 
