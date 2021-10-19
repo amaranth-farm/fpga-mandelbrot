@@ -19,7 +19,10 @@ class FractalManager(Elaboratable):
         # I/O
         self.command_stream_in  = StreamInterface(name="command_stream")
         self.pixel_stream_out   = StreamInterface(name="pixel_stream")
-        self.busy               = Signal(no_cores)
+        self.busy_out           = Signal(no_cores)
+
+        self.result_x_out = Signal(16)
+        self.result_y_out = Signal(16)
 
     def elaborate(self, platform: Platform) -> Module:
         m = Module()
@@ -103,10 +106,10 @@ class FractalManager(Elaboratable):
         start    = Array([Signal(                  name=f"start_{n}")  for n in range(no_cores)])
         xs       = Array([Signal(signed(bitwidth), name=f"x_{n}")      for n in range(no_cores)])
         ys       = Array([Signal(signed(bitwidth), name=f"y_{n}")      for n in range(no_cores)])
-        pixel_x = Array([Signal(signed(bitwidth),  name=f"pixelx_{n}") for n in range(no_cores)])
-        pixel_y = Array([Signal(signed(bitwidth),  name=f"pixely_{n}") for n in range(no_cores)])
+        pixel_x  = Array([Signal(signed(bitwidth), name=f"pixelx_{n}") for n in range(no_cores)])
+        pixel_y  = Array([Signal(signed(bitwidth), name=f"pixely_{n}") for n in range(no_cores)])
 
-        m.d.comb += self.busy.eq(~Cat(idle))
+        m.d.comb += self.busy_out.eq(~Cat(idle))
 
         # result collector signals
         done       = Array([Signal(    name=f"done_{n}")    for n in range(no_cores)])
@@ -210,13 +213,17 @@ class FractalManager(Elaboratable):
 
         pixel_out = self.pixel_stream_out
         result_iterations = Signal(32)
-        result_color      = Signal(24)
         result_pixel_x    = Signal(16)
         result_pixel_y    = Signal(16)
         result_escape     = Signal()
         result_maxed      = Signal()
         send_byte         = Signal(8)
         first_result_sent = Signal()
+
+        m.d.comb += [
+            self.result_x_out.eq(result_pixel_x),
+            self.result_y_out.eq(result_pixel_y),
+        ]
 
         # result collector FSM
         with m.FSM(name="result_collector") as fsm:

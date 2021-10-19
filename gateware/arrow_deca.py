@@ -94,6 +94,8 @@ class ArrowDECAPlatform(IntelPlatform, LUNAPlatform):
             pins="J21 J22",
             attrs=Attrs(io_standard="1.5 V")),
 
+        SPIResource(0, clk="P_9:11", copi="P_9:13", cipo=None, cs_n="P_9:15", attrs=Attrs(io_standard="3.3-V LVCMOS")),
+
         Resource("clk60", 0, Pins("H11", dir="i"), Clock(60e6), Attrs(io_standard="1.2 V")),
         Resource("usb", 0, Subsignal("fault", Pins("D8",  dir="i", invert=True),  Attrs(io_standard="1.2 V")),
                            Subsignal("cs",    Pins("J11", dir="o", invert=False), Attrs(io_standard="1.8 V"))),

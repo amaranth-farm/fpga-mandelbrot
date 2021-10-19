@@ -9,6 +9,7 @@ from nmigen.lib.fifo     import AsyncFIFO
 
 from nmigen_library.debug.ila   import StreamILA, ILACoreParameters
 from nmigen_library.stream      import connect_stream_to_fifo, connect_fifo_to_stream
+from nmigen_library.io.max7219  import SerialLEDArray, NumberToSevenSegmentHex
 
 from luna                import top_level_cli
 from luna.usb2           import USBDevice, USBStreamInEndpoint, USBStreamOutEndpoint
@@ -76,7 +77,7 @@ class MandelbrotAccelerator(Elaboratable):
 
         # Generate our domain clocks/resets.
         m.submodules.car = platform.clock_domain_generator()
-        # Create our USB-to-serial converter.
+
         ulpi = platform.request(platform.default_usb_connection)
         m.submodules.usb = usb = USBDevice(bus=ulpi)
 
@@ -178,9 +179,20 @@ class MandelbrotAccelerator(Elaboratable):
             leds[0].eq(usb.rx_activity_led),
             leds[1].eq(usb.tx_activity_led),
             leds[2].eq(usb.suspended),
-            Cat(leds[3:6]).eq(fractalmanager.busy),
+            Cat(leds[3:6]).eq(fractalmanager.busy_out),
             leds[6].eq(result_fifo.r_en),
             leds[7].eq(result_fifo.r_rdy),
+        ]
+
+        spi = platform.request("spi")
+        m.submodules.sevensegment = sevensegment = NumberToSevenSegmentHex(width=32)
+        m.submodules.led_display = led_display= SerialLEDArray(divisor=8, init_delay=16e6)
+        m.d.comb += [
+            sevensegment.number_in.eq((fractalmanager.result_x_out << 16) | fractalmanager.result_y_out),
+            sevensegment.dots_in.eq(fractalmanager.busy_out),
+            *led_display.connect_to_resource(spi),
+            Cat(led_display.digits_in).eq(sevensegment.seven_segment_out),
+            led_display.valid_in.eq(1),
         ]
 
         return m
