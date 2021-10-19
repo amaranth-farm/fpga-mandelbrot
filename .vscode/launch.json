@@ -24,7 +24,7 @@
             "name": "Python: Generate Gateware",
             "type": "python",
             "request": "launch",
-            "program": "deca_mandelbrot.py",
+            "program": "gateware/deca_mandelbrot.py",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
