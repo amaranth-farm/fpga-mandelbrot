@@ -187,7 +187,7 @@ if __name__ == "__main__":
 
                                 cr.rectangle(x, y, 1.5, 1.5)
                                 cr.fill()
-                                if pixel_count % 500 == 0:
+                                if pixel_count % 1000 == 0:
                                     self.canvas.queue_draw()
 
                                 return False
@@ -254,10 +254,34 @@ if __name__ == "__main__":
                     center_x.set_text(str(x))
                     center_y.set_text(str(y))
 
+                crosshairs = None
+
+                def onCanvasMotion(self, canvas, event):
+                    step = fix2float(self.view.step)
+                    x = fix2float(self.view.corner_x) + (event.x * step)
+                    y = fix2float(self.view.corner_y) + ((self.view.height - event.y) * step)
+                    self.crosshairs = [(event.x, event.y), (x,y)]
+                    canvas.queue_draw()
+
                 def onDraw(self, canvas: DrawingArea, cr: cairo.Context):
-                    #code.interact(local=locals())
                     cr.set_source_surface(self.surface, 0, 0)
                     cr.paint()
+                    if not self.crosshairs is None:
+                        x, y = self.crosshairs[0]
+                        cr.set_source_rgb(1, 1, 1)
+                        cr.set_line_width(1)
+                        cr.move_to(x, 0)
+                        cr.line_to(x, self.view.height)
+                        cr.move_to(0, y)
+                        cr.line_to(self.view.width, y)
+                        cr.stroke()
+
+                        cr.set_font_size(20)
+                        cr.move_to(20, 20)
+                        cr.show_text(f"x: {str(self.crosshairs[1][0])}")
+                        cr.move_to(20, 40)
+                        cr.show_text(f"y: {str(self.crosshairs[1][1])}")
+
 
             builder = Gtk.Builder()
             builder.add_from_file("mandelbrot-client-gui.glade")
