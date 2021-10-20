@@ -150,7 +150,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <signal name="pressed" handler="onButtonPressed" swapped="no"/>
+                <signal name="pressed" handler="onUpdateButtonPress" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -167,9 +167,15 @@
         </child>
         <child>
           <object class="GtkDrawingArea" id="canvas">
+            <property name="name">canvas</property>
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can_focus">True</property>
+            <property name="has_focus">True</property>
+            <property name="has_default">True</property>
+            <property name="events">GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_STRUCTURE_MASK</property>
+            <signal name="button-press-event" handler="onCanvasButtonPress" swapped="no"/>
             <signal name="draw" handler="onDraw" swapped="no"/>
+            <signal name="motion-notify-event" handler="onCanvasMotion" swapped="no"/>
           </object>
           <packing>
             <property name="expand">True</property>

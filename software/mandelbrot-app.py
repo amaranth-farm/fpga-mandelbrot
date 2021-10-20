@@ -212,12 +212,20 @@ if __name__ == "__main__":
                         self.surface = cairo.ImageSurface(cairo.FORMAT_RGB24, width, height)
                         self.width, self.height = width, height
 
-                def onButtonPressed(self, button):
+                def getViewParameterWidgets(self):
+                    center_x   = builder.get_object("center_x")
+                    center_y   = builder.get_object("center_y")
+                    radius     = builder.get_object("radius")
+                    return [center_x, center_y, radius]
+
+                def getViewParameters(self):
+                    getValue = lambda w: float(w.get_text())
+                    return map(getValue, self.getViewParameterWidgets())
+
+                def onUpdateButtonPress(self, button):
                     self.updateImageSurfaceIfNeeded()
 
-                    center_x   = float(builder.get_object("center_x").get_text())
-                    center_y   = float(builder.get_object("center_y").get_text())
-                    radius     = float(builder.get_object("radius").get_text())
+                    center_x, center_y, radius = self.getViewParameters()
                     iterations = int  (builder.get_object("iterations").get_text())
 
                     self.view.update(center_x=center_x, center_y=center_y, radius=radius, width=self.width, height=self.height, max_iterations=iterations)
@@ -238,7 +246,16 @@ if __name__ == "__main__":
                     painter_thread = threading.Thread(target=lambda: self.painter(), daemon=True)
                     painter_thread.start()
 
+                def onCanvasButtonPress(self, canvas, event):
+                    step = fix2float(self.view.step)
+                    x = fix2float(self.view.corner_x) + (event.x * step)
+                    y = fix2float(self.view.corner_y) + ((self.view.height - event.y) * step)
+                    center_x, center_y, _ = self.getViewParameterWidgets()
+                    center_x.set_text(str(x))
+                    center_y.set_text(str(y))
+
                 def onDraw(self, canvas: DrawingArea, cr: cairo.Context):
+                    #code.interact(local=locals())
                     cr.set_source_surface(self.surface, 0, 0)
                     cr.paint()
 
