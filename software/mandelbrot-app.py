@@ -170,7 +170,7 @@ if __name__ == "__main__":
                             pixel_count += 1
 
                             x     = pixel[0]
-                            y     = pixel[1]
+                            y     = self.view.height - pixel[1]
 
                             red, green, blue = colortable[pixel[2] & 0xf]
                             red   /= 255.0
