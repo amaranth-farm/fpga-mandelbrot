@@ -186,7 +186,7 @@ class MandelbrotAccelerator(Elaboratable):
 
         spi = platform.request("spi")
         m.submodules.sevensegment = sevensegment = NumberToSevenSegmentHex(width=32)
-        m.submodules.led_display = led_display= SerialLEDArray(divisor=8, init_delay=16e6)
+        m.submodules.led_display = led_display = SerialLEDArray(divisor=8, init_delay=16e6)
         m.d.comb += [
             sevensegment.number_in.eq((fractalmanager.result_x_out << 16) | fractalmanager.result_y_out),
             sevensegment.dots_in.eq(fractalmanager.busy_out),

@@ -116,6 +116,8 @@ colortable = [
     [106,  52,   3],
 ]
 
+colortable_float = [[i[0] / 255.0, i[1] / 255.0, i[2] / 255.0] for i in colortable]
+
 from sys import argv
 if __name__ == "__main__":
     if len(argv) > 1:
@@ -172,11 +174,7 @@ if __name__ == "__main__":
                             x     = pixel[0]
                             y     = self.view.height - pixel[1]
 
-                            red, green, blue = colortable[pixel[2] & 0xf]
-                            red   /= 255.0
-                            green /= 255.0
-                            blue  /= 255.0
-
+                            red, green, blue = colortable_float[pixel[2] & 0xf]
                             maxed = pixel[2] >> 7
 
                             def draw_pixel():
@@ -284,7 +282,7 @@ if __name__ == "__main__":
 
 
             builder = Gtk.Builder()
-            builder.add_from_file("mandelbrot-client-gui.glade")
+            builder.add_from_file("mandelbrot-client-gui.ui")
             handler = GuiHandler(builder)
             builder.connect_signals(handler)
 
