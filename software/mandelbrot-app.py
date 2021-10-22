@@ -280,7 +280,7 @@ if __name__ == "__main__":
                 for i in range(len(self.pixels)):
                     self.pixels[i] = 0
 
-                view = self.view
+                view        = self.view
                 view.width  = self.width
                 view.height = self.height
                 usb_reader = lambda: send_command(9, view, view.max_iterations, debug=False)
