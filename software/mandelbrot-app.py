@@ -235,9 +235,7 @@ if __name__ == "__main__":
                             self.pixels[pixel_index + 2] = blue
 
                         if pixel_count % (2 * self.width) == 0:
-                            Gdk.threads_enter()
-                            self.canvas.queue_draw()
-                            Gdk.threads_leave()
+                            GLib.idle_add(self.canvas.queue_draw)
 
                         pixel_queue.task_done()
 
@@ -338,5 +336,4 @@ if __name__ == "__main__":
         window.connect("destroy", Gtk.main_quit)
         window.show_all()
 
-        Gdk.threads_init()
         Gtk.main()
