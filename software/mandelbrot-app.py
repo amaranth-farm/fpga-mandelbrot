@@ -26,7 +26,7 @@ def float2fix(f):
 
 pixel_queue = queue.Queue()
 
-def send_command(bytewidth, view, debug=False):
+def send_command(bytewidth, view, iterations=10000, debug=False):
     tstart = time.perf_counter()
     command_bytes = struct.pack("HHI", view.width-1, view.height-1, view.max_iterations)
     command_bytes += view.corner_x.to_bytes(bytewidth, byteorder='little', signed=True)
@@ -43,7 +43,7 @@ def send_command(bytewidth, view, debug=False):
     try:
         while True:
             if debug: print("read")
-            r = dev.read(0x81, 256, timeout=10)
+            r = dev.read(0x81, 256, timeout=max(10, iterations//1000))
             if debug: print("Got: "+ str(len(r)))
             if debug: print(str(r))
             result += r
@@ -127,12 +127,14 @@ if __name__ == "__main__":
         if argv[1] == "gui":
             import gi
             gi.require_version("Gtk", "3.0")
-            from gi.repository     import GLib, Gtk, Gdk
-            from gi.repository.Gtk import DrawingArea
+            from gi.repository           import GLib, Gtk, Gdk
+            from gi.repository.Gtk       import DrawingArea
+            from gi.repository.GdkPixbuf import Pixbuf, Colorspace
+            from gi.repository.GdkPixdata import Pixdata, PIXBUF_MAGIC_NUMBER, PIXDATA_HEADER_LENGTH, PixdataType
             import cairo
 
             class GuiHandler:
-                surface = None
+                pixbuf = None
                 builder = None
                 canvas  = None
 
@@ -144,6 +146,7 @@ if __name__ == "__main__":
 
                 def __init__(self, builder) -> None:
                     self.builder = builder
+                    self.pixels = None
                     centerx_widget    = builder.get_object("center_x")
                     centery_widget    = builder.get_object("center_y")
                     radius_widget     = builder.get_object("radius")
@@ -158,12 +161,13 @@ if __name__ == "__main__":
                     radius_widget    .set_text(str(radius))
                     iterations_widget.set_text(str(iterations))
 
-                    self.updateImageSurfaceIfNeeded()
+                    self.updateImageBufferIfNeeded()
 
                 def painter(self):
                     drawing_start = time.perf_counter()
                     try:
-                        cr = cairo.Context(self.surface)
+                        channels  = 3
+                        rowstride = self.width * channels
                         pixel_count = 0
                         while True:
                             # get() will exit this thread if the
@@ -174,25 +178,24 @@ if __name__ == "__main__":
                             x     = pixel[0]
                             y     = self.view.height - pixel[1]
 
-                            red, green, blue = colortable_float[pixel[2] & 0xf]
+                            red, green, blue = colortable[pixel[2] & 0xf]
                             maxed = pixel[2] >> 7
 
-                            def draw_pixel():
-                                if not maxed:
-                                    cr.set_source_rgb(red, green, blue)
-                                else:
-                                    cr.set_source_rgb(0, 0, 0)
+                            pixel_index = y * rowstride + x * channels
 
-                                cr.rectangle(x, y, 1.5, 1.5)
-                                cr.fill()
-                                if pixel_count % 1000 == 0:
-                                    self.canvas.queue_draw()
+                            if maxed:
+                                red = green = blue = 0
 
-                                return False
+                            if pixel_index + 2 < len(self.pixels):
+                                self.pixels[pixel_index]     = red
+                                self.pixels[pixel_index + 1] = green
+                                self.pixels[pixel_index + 2] = blue
 
-                            Gdk.threads_enter()
-                            draw_pixel()
-                            Gdk.threads_leave()
+                            if pixel_count % (2 * self.width) == 0:
+                                Gdk.threads_enter()
+                                self.canvas.queue_draw()
+                                Gdk.threads_leave()
+
                             pixel_queue.task_done()
 
                     finally:
@@ -202,12 +205,13 @@ if __name__ == "__main__":
                 def onDestroy(self, *args):
                     Gtk.main_quit()
 
-                def updateImageSurfaceIfNeeded(self):
+                def updateImageBufferIfNeeded(self):
                     self.canvas = canvas = builder.get_object("canvas")
                     width  = canvas.get_allocated_size().allocation.width
                     height = canvas.get_allocated_size().allocation.height
-                    if self.surface is None or self.width != width or self.height != height:
-                        self.surface = cairo.ImageSurface(cairo.FORMAT_RGB24, width, height)
+                    if (self.pixbuf is None or self.width != width or self.height != height) and width > 0 and height > 0:
+                        print(f"w {width} h {height}")
+                        self.pixels = bytearray((height + 1) * 3 * width)
                         self.width, self.height = width, height
 
                 def getViewParameterWidgets(self):
@@ -221,7 +225,7 @@ if __name__ == "__main__":
                     return map(getValue, self.getViewParameterWidgets())
 
                 def onUpdateButtonPress(self, button):
-                    self.updateImageSurfaceIfNeeded()
+                    self.updateImageBufferIfNeeded()
 
                     center_x, center_y, radius = self.getViewParameters()
                     iterations = int  (builder.get_object("iterations").get_text())
@@ -229,15 +233,14 @@ if __name__ == "__main__":
                     self.view.update(center_x=center_x, center_y=center_y, radius=radius, width=self.width, height=self.height, max_iterations=iterations)
                     print(self.view.to_string())
 
-                    cr = cairo.Context(self.surface)
-                    cr.set_source_rgb(0, 0, 0)
-                    cr.rectangle(0, 0, self.width, self.height)
-                    cr.fill()
+                    # clear out image
+                    for i in range(len(self.pixels)):
+                        self.pixels[i] = 0
 
                     view = self.view
                     view.width  = self.width
                     view.height = self.height
-                    usb_reader = lambda: send_command(9, view, debug=False)
+                    usb_reader = lambda: send_command(9, view, view.max_iterations, debug=False)
                     usb_thread = threading.Thread(target=usb_reader, daemon=True)
                     usb_thread.start()
 
@@ -262,8 +265,10 @@ if __name__ == "__main__":
                     canvas.queue_draw()
 
                 def onDraw(self, canvas: DrawingArea, cr: cairo.Context):
-                    cr.set_source_surface(self.surface, 0, 0)
-                    cr.paint()
+                    if not self.pixels is None:
+                        pixbuf = Pixbuf.new_from_data(bytes(self.pixels), Colorspace.RGB, False, 8, self.width, self.height + 1, self.width * 3)
+                        Gdk.cairo_set_source_pixbuf(cr, pixbuf, 0, 0)
+                        cr.paint()
                     if not self.crosshairs is None:
                         x, y = self.crosshairs[0]
                         cr.set_source_rgb(1, 1, 1)
