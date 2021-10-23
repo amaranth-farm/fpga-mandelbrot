@@ -115,14 +115,189 @@ colortable = [
 
 colortable_float = [[i[0] / 255.0, i[1] / 255.0, i[2] / 255.0] for i in colortable]
 
+def gtk_gui(orbits=False):
+    import gi
+    gi.require_version("Gtk", "3.0")
+    from gi.repository           import GLib, Gtk, Gdk
+    from gi.repository.Gtk       import DrawingArea
+    from gi.repository.GdkPixbuf import Pixbuf, Colorspace
+    import cairo
+
+    class GuiHandler:
+        pixbuf = None
+        builder = None
+        canvas  = None
+
+        width  = 0
+        weight = 0
+
+        drawing = False
+        view = default_view
+
+        def __init__(self, builder) -> None:
+            self.builder = builder
+            self.pixels = None
+            centerx_widget    = builder.get_object("center_x")
+            centery_widget    = builder.get_object("center_y")
+            radius_widget     = builder.get_object("radius")
+            iterations_widget = builder.get_object("iterations")
+            zero_y            = builder.get_object("zero_y")
+
+            center_x, center_y = view.get_center()
+            radius             = view.get_radius()
+            iterations         = view.max_iterations
+
+            centerx_widget   .set_text(str(center_x))
+            centery_widget   .set_text(str(center_y))
+            radius_widget    .set_text(str(radius))
+            iterations_widget.set_text(str(iterations))
+
+            self.updateImageBufferIfNeeded()
+
+        def painter(self):
+            drawing_start = time.perf_counter()
+            try:
+                channels  = 3
+                rowstride = self.width * channels
+                pixel_count = 0
+                while True:
+                    # get() will exit this thread if the
+                    # queue is empty
+                    pixel = pixel_queue.get()
+                    pixel_count += 1
+
+                    x     = pixel[0]
+                    y     = self.view.height - pixel[1]
+
+                    red, green, blue = colortable[pixel[2] & 0xf]
+                    maxed = pixel[2] >> 7
+
+                    pixel_index = y * rowstride + x * channels
+
+                    if maxed:
+                        red = green = blue = 0
+
+                    if pixel_index + 2 < len(self.pixels):
+                        self.pixels[pixel_index]     = red
+                        self.pixels[pixel_index + 1] = green
+                        self.pixels[pixel_index + 2] = blue
+
+                    if pixel_count % (2 * self.width) == 0:
+                        GLib.idle_add(self.canvas.queue_draw)
+
+                    pixel_queue.task_done()
+
+            finally:
+                now = time.perf_counter()
+                print(f"drawing took: {now - drawing_start:0.4f} seconds")
+
+        def onDestroy(self, *args):
+            Gtk.main_quit()
+
+        def updateImageBufferIfNeeded(self):
+            self.canvas = canvas = builder.get_object("canvas")
+            width  = canvas.get_allocated_size().allocation.width
+            height = canvas.get_allocated_size().allocation.height
+            if (self.pixbuf is None or self.width != width or self.height != height) and width > 0 and height > 0:
+                print(f"w {width} h {height}")
+                self.pixels = bytearray((height + 1) * 3 * width)
+                self.width, self.height = width, height
+
+        def getViewParameterWidgets(self):
+            center_x   = builder.get_object("center_x")
+            center_y   = builder.get_object("center_y")
+            radius     = builder.get_object("radius")
+            return [center_x, center_y, radius]
+
+        def getViewParameters(self):
+            getValue = lambda w: float(w.get_text())
+            return map(getValue, self.getViewParameterWidgets())
+
+        def onUpdateButtonPress(self, button):
+            self.updateImageBufferIfNeeded()
+
+            center_x, center_y, radius = self.getViewParameters()
+            iterations = int  (builder.get_object("iterations").get_text())
+
+            self.view.update(center_x=center_x, center_y=center_y, radius=radius, width=self.width, height=self.height, max_iterations=iterations)
+            print(self.view.to_string())
+
+            # clear out image
+            for i in range(len(self.pixels)):
+                self.pixels[i] = 0
+
+            view        = self.view
+            view.width  = self.width
+            view.height = self.height
+            usb_reader = lambda: send_command(9, view, view.max_iterations, debug=False)
+            usb_thread = threading.Thread(target=usb_reader, daemon=True)
+            usb_thread.start()
+
+            painter_thread = threading.Thread(target=lambda: self.painter(), daemon=True)
+            painter_thread.start()
+
+        def onCanvasButtonPress(self, canvas, event):
+            step = fix2float(self.view.step)
+            x = fix2float(self.view.corner_x) + (event.x * step)
+            y = fix2float(self.view.corner_y) + ((self.view.height - event.y) * step)
+            center_x, center_y, _ = self.getViewParameterWidgets()
+            center_x.set_text(str(x))
+            center_y.set_text(str(y))
+
+        crosshairs = None
+
+        def onCanvasMotion(self, canvas, event):
+            step = fix2float(self.view.step)
+            x = fix2float(self.view.corner_x) + (event.x * step)
+            y = fix2float(self.view.corner_y) + ((self.view.height - event.y) * step)
+            self.crosshairs = [(event.x, event.y), (x,y)]
+            canvas.queue_draw()
+
+        def onDraw(self, canvas: DrawingArea, cr: cairo.Context):
+            if not self.pixels is None:
+                pixbuf = Pixbuf.new_from_data(bytes(self.pixels), Colorspace.RGB, False, 8, self.width, self.height + 1, self.width * 3)
+                Gdk.cairo_set_source_pixbuf(cr, pixbuf, 0, 0)
+                cr.paint()
+            if not self.crosshairs is None:
+                x, y = self.crosshairs[0]
+                cr.set_source_rgb(1, 1, 1)
+                cr.set_line_width(1)
+                cr.move_to(x, 0)
+                cr.line_to(x, self.view.height)
+                cr.move_to(0, y)
+                cr.line_to(self.view.width, y)
+                cr.stroke()
+
+                cr.set_font_size(20)
+                cr.move_to(20, 20)
+                cr.show_text(f"x: {str(self.crosshairs[1][0])}")
+                cr.move_to(20, 40)
+                cr.show_text(f"y: {str(self.crosshairs[1][1])}")
+
+
+    builder = Gtk.Builder()
+    builder.add_from_file("mandelbrot-client-gui.ui")
+    handler = GuiHandler(builder)
+    builder.connect_signals(handler)
+
+    window = builder.get_object("window")
+    window.connect("destroy", Gtk.main_quit)
+    window.show_all()
+
+    Gtk.main()
+
 from sys import argv
 if __name__ == "__main__":
     if len(argv) > 1:
         if argv[1] == "debug":
             send_command(9, view, debug=True)
 
-        if argv[1] == "png":
+        elif argv[1] == "png":
             tstart = time.perf_counter()
+
+            if len(argv) == 4:
+                view.width  = int(argv[2])
+                view.height = int(argv[3])
 
             usb_reader = lambda: send_command(9, view, debug=False)
             usb_thread = threading.Thread(target=usb_reader, daemon=True)
@@ -168,172 +343,8 @@ if __name__ == "__main__":
             print(f"saving image took: {img_save - pix_conv:0.4f} seconds")
             openImage(outfilename)
 
+        elif argv[1] == "orbits":
+            gtk_gui(orbits=True)
+
     else:
-        import gi
-        gi.require_version("Gtk", "3.0")
-        from gi.repository           import GLib, Gtk, Gdk
-        from gi.repository.Gtk       import DrawingArea
-        from gi.repository.GdkPixbuf import Pixbuf, Colorspace
-        import cairo
-
-        class GuiHandler:
-            pixbuf = None
-            builder = None
-            canvas  = None
-
-            width  = 0
-            weight = 0
-
-            drawing = False
-            view = default_view
-
-            def __init__(self, builder) -> None:
-                self.builder = builder
-                self.pixels = None
-                centerx_widget    = builder.get_object("center_x")
-                centery_widget    = builder.get_object("center_y")
-                radius_widget     = builder.get_object("radius")
-                iterations_widget = builder.get_object("iterations")
-
-                center_x, center_y = view.get_center()
-                radius             = view.get_radius()
-                iterations         = view.max_iterations
-
-                centerx_widget   .set_text(str(center_x))
-                centery_widget   .set_text(str(center_y))
-                radius_widget    .set_text(str(radius))
-                iterations_widget.set_text(str(iterations))
-
-                self.updateImageBufferIfNeeded()
-
-            def painter(self):
-                drawing_start = time.perf_counter()
-                try:
-                    channels  = 3
-                    rowstride = self.width * channels
-                    pixel_count = 0
-                    while True:
-                        # get() will exit this thread if the
-                        # queue is empty
-                        pixel = pixel_queue.get()
-                        pixel_count += 1
-
-                        x     = pixel[0]
-                        y     = self.view.height - pixel[1]
-
-                        red, green, blue = colortable[pixel[2] & 0xf]
-                        maxed = pixel[2] >> 7
-
-                        pixel_index = y * rowstride + x * channels
-
-                        if maxed:
-                            red = green = blue = 0
-
-                        if pixel_index + 2 < len(self.pixels):
-                            self.pixels[pixel_index]     = red
-                            self.pixels[pixel_index + 1] = green
-                            self.pixels[pixel_index + 2] = blue
-
-                        if pixel_count % (2 * self.width) == 0:
-                            GLib.idle_add(self.canvas.queue_draw)
-
-                        pixel_queue.task_done()
-
-                finally:
-                    now = time.perf_counter()
-                    print(f"drawing took: {now - drawing_start:0.4f} seconds")
-
-            def onDestroy(self, *args):
-                Gtk.main_quit()
-
-            def updateImageBufferIfNeeded(self):
-                self.canvas = canvas = builder.get_object("canvas")
-                width  = canvas.get_allocated_size().allocation.width
-                height = canvas.get_allocated_size().allocation.height
-                if (self.pixbuf is None or self.width != width or self.height != height) and width > 0 and height > 0:
-                    print(f"w {width} h {height}")
-                    self.pixels = bytearray((height + 1) * 3 * width)
-                    self.width, self.height = width, height
-
-            def getViewParameterWidgets(self):
-                center_x   = builder.get_object("center_x")
-                center_y   = builder.get_object("center_y")
-                radius     = builder.get_object("radius")
-                return [center_x, center_y, radius]
-
-            def getViewParameters(self):
-                getValue = lambda w: float(w.get_text())
-                return map(getValue, self.getViewParameterWidgets())
-
-            def onUpdateButtonPress(self, button):
-                self.updateImageBufferIfNeeded()
-
-                center_x, center_y, radius = self.getViewParameters()
-                iterations = int  (builder.get_object("iterations").get_text())
-
-                self.view.update(center_x=center_x, center_y=center_y, radius=radius, width=self.width, height=self.height, max_iterations=iterations)
-                print(self.view.to_string())
-
-                # clear out image
-                for i in range(len(self.pixels)):
-                    self.pixels[i] = 0
-
-                view        = self.view
-                view.width  = self.width
-                view.height = self.height
-                usb_reader = lambda: send_command(9, view, view.max_iterations, debug=False)
-                usb_thread = threading.Thread(target=usb_reader, daemon=True)
-                usb_thread.start()
-
-                painter_thread = threading.Thread(target=lambda: self.painter(), daemon=True)
-                painter_thread.start()
-
-            def onCanvasButtonPress(self, canvas, event):
-                step = fix2float(self.view.step)
-                x = fix2float(self.view.corner_x) + (event.x * step)
-                y = fix2float(self.view.corner_y) + ((self.view.height - event.y) * step)
-                center_x, center_y, _ = self.getViewParameterWidgets()
-                center_x.set_text(str(x))
-                center_y.set_text(str(y))
-
-            crosshairs = None
-
-            def onCanvasMotion(self, canvas, event):
-                step = fix2float(self.view.step)
-                x = fix2float(self.view.corner_x) + (event.x * step)
-                y = fix2float(self.view.corner_y) + ((self.view.height - event.y) * step)
-                self.crosshairs = [(event.x, event.y), (x,y)]
-                canvas.queue_draw()
-
-            def onDraw(self, canvas: DrawingArea, cr: cairo.Context):
-                if not self.pixels is None:
-                    pixbuf = Pixbuf.new_from_data(bytes(self.pixels), Colorspace.RGB, False, 8, self.width, self.height + 1, self.width * 3)
-                    Gdk.cairo_set_source_pixbuf(cr, pixbuf, 0, 0)
-                    cr.paint()
-                if not self.crosshairs is None:
-                    x, y = self.crosshairs[0]
-                    cr.set_source_rgb(1, 1, 1)
-                    cr.set_line_width(1)
-                    cr.move_to(x, 0)
-                    cr.line_to(x, self.view.height)
-                    cr.move_to(0, y)
-                    cr.line_to(self.view.width, y)
-                    cr.stroke()
-
-                    cr.set_font_size(20)
-                    cr.move_to(20, 20)
-                    cr.show_text(f"x: {str(self.crosshairs[1][0])}")
-                    cr.move_to(20, 40)
-                    cr.show_text(f"y: {str(self.crosshairs[1][1])}")
-
-
-        builder = Gtk.Builder()
-        builder.add_from_file("mandelbrot-client-gui.ui")
-        handler = GuiHandler(builder)
-        builder.connect_signals(handler)
-
-        window = builder.get_object("window")
-        window.connect("destroy", Gtk.main_quit)
-        window.show_all()
-
-        Gtk.main()
+        gtk_gui()
