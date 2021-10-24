@@ -1,20 +1,20 @@
 [*]
 [*] GTKWave Analyzer v3.3.111 (w)1999-2020 BSI
-[*] Sun Oct 24 21:57:55 2021
+[*] Sun Oct 24 23:31:04 2021
 [*]
-[dumpfile] "/devel/HDL/src/deca-mandelbrot/gateware/test_MandelbrotTest_test_basic.vcd"
-[dumpfile_mtime] "Sun Oct 24 21:54:13 2021"
-[dumpfile_size] 7812
-[savefile] "/devel/HDL/src/deca-mandelbrot/gateware/mandelbrot_basic_test.gtkw"
-[timestart] 0
+[dumpfile] "test_MandelbrotTest_test_basic.vcd"
+[dumpfile_mtime] "Sun Oct 24 23:29:01 2021"
+[dumpfile_size] 37693
+[savefile] "mandelbrot_basic_test.gtkw"
+[timestart] 354400
 [size] 3828 2090
 [pos] -1 -1
-*-14.597101 69500 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-14.597101 664900 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] top.
 [sst_width] 416
-[signals_width] 718
+[signals_width] 613
 [sst_expanded] 1
-[sst_vpaned_height] 635
+[sst_vpaned_height] 972
 @28
 top.clk
 @40000420
@@ -30,28 +30,26 @@ top.result_ready_out
 top.result_read_in
 [color] 3
 top.result_read
-[color] 3
-top.maxed_out
-[color] 3
-top.escape0_out
 @200
 -Result Values
 @28
 [color] 3
+top.escape0_out
+[color] 3
 top.escape1_out
 [color] 3
 top.escape2_out
-[color] 3
-top.escape3_out
-@22
+@24
 [color] 3
 top.iterations0_out[31:0]
 [color] 3
 top.iterations1_out[31:0]
 [color] 3
 top.iterations2_out[31:0]
-[color] 3
-top.iterations3_out[31:0]
+@28
+top.done_0
+top.done_1
+top.done_2
 @200
 -Input
 @24
@@ -69,35 +67,15 @@ top.cy_1[63:0]
 top.cx_2[63:0]
 [fpshift_count] 56
 top.cy_2[63:0]
-[fpshift_count] 56
-top.cx_3[63:0]
-[fpshift_count] 56
-top.cy_3[63:0]
-@200
--Multiplier
-@40000420
-[fpshift_count] 56
-top.factor1[63:0]
-[fpshift_count] 56
-top.factor2[63:0]
-[fpshift_count] 56
-top.two_times_product[63:0]
 @200
 -Pipeline
 @28
 [color] 3
 top.fsm_state
-@c00028
-top.stage_enable[3:0]
-@28
-(0)top.stage_enable[3:0]
-(1)top.stage_enable[3:0]
-(2)top.stage_enable[3:0]
-(3)top.stage_enable[3:0]
-@1401200
--group_end
-@200
--Stage0
+@24
+top.iteration[31:0]
+@25
+top.result_no[1:0]
 @40000420
 [fpshift_count] 56
 top.x_stage_0[63:0]
@@ -105,42 +83,17 @@ top.x_stage_0[63:0]
 top.y_stage_0[63:0]
 [fpshift_count] 56
 top.xx_stage_0[63:0]
-@200
--Stage1
-@40000420
 [fpshift_count] 56
-top.x_stage_1[63:0]
-[fpshift_count] 56
-top.y_stage_1[63:0]
-[fpshift_count] 56
-top.yy_stage_1[63:0]
-@200
--Stage2
-@40000420
+top.yy_stage_0[63:0]
 [fpshift_count] 56
 top.two_xy[63:0]
 [fpshift_count] 56
 top.xx_plus_yy[63:0]
 [fpshift_count] 56
 top.xx_minus_yy[63:0]
-@200
--Stage3
-@40000420
 [fpshift_count] 56
-top.x_stage_3[63:0]
+top.x_stage_2[63:0]
 [fpshift_count] 56
-top.y_stage_3[63:0]
-@25
-top.iteration[31:0]
-@24
-top.result_no[1:0]
-@40000420
-[fpshift_count] 56
-top.x[63:0]
-[fpshift_count] 56
-top.y[63:0]
-@28
-top.escape
-top.maxed_out
+top.y_stage_2[63:0]
 [pattern_trace] 1
 [pattern_trace] 0
