@@ -8,26 +8,26 @@ class Mandelbrot(Elaboratable):
         self._bitwidth = bitwidth
         self._fraction_bits = fraction_bits
         self._test = test
+        self.stages = 4
 
         # Inputs
-        self.cx_in             = Signal(signed(bitwidth))
-        self.cy_in             = Signal(signed(bitwidth))
+        self.cx_in             = Array([Signal(signed(bitwidth), name=f"cx_{n}") for n in range(self.stages)])
+        self.cy_in             = Array([Signal(signed(bitwidth), name=f"cy_{n}") for n in range(self.stages)])
         self.start_in          = Signal()
         self.max_iterations_in = Signal(32)
         self.result_read_in    = Signal()
 
         # Outputs
         self.busy_out          = Signal()
-        self.escape_out        = Signal()
-        self.maxed_out         = Signal()
-        self.done_out          = Signal()
         self.result_ready_out  = Signal()
-        self.iterations_out    = Signal(32)
+
+        self.escape_out        = Array([Signal(    name=f"escape{n}_out")     for n in range(self.stages)])
+        self.iterations_out    = Array([Signal(32, name=f"iterations{n}_out") for n in range(self.stages)])
 
         if test:
-            self.x          = Signal.like(self.cx_in)
-            self.y          = Signal.like(self.cy_in)
-            self.xx_plus_yy = Signal.like(self.cy_in)
+            self.x          = Signal.like(self.cx_in[0])
+            self.y          = Signal.like(self.cy_in[0])
+            self.xx_plus_yy = Signal.like(self.cy_in[0])
 
     def elaborate(self, platform: Platform) -> Module:
         m = Module()
@@ -41,19 +41,31 @@ class Mandelbrot(Elaboratable):
         # pipeline stages enable signals
         stage_enable = Signal(4)
 
+        # which result is currently being at the last stage
+        result_no = Signal(range(self.stages))
+
+        # which pipeline stages are finished processing
+        done = Array([Signal(name=f"done_{n}") for n in range(self.stages)])
+
+        # pipeline stage 0
+        x_stage_0     = Signal(signed(bitwidth))
+        y_stage_0     = Signal(signed(bitwidth))
+        xx_stage_0    = Signal(signed(bitwidth))
+
         # pipeline stage 1
-        two_xy = Signal(signed(bitwidth))
-        xx     = Signal(signed(bitwidth))
-        yy     = Signal(signed(bitwidth))
+        x_stage_1     = Signal(signed(bitwidth))
+        y_stage_1     = Signal(signed(bitwidth))
+        xx_stage_1    = Signal(signed(bitwidth))
+        yy_stage_1    = Signal(signed(bitwidth))
 
         # pipeline stage 2
+        two_xy        = Signal(signed(bitwidth))
         xx_plus_yy    = Signal(signed(bitwidth))
         xx_minus_yy   = Signal(signed(bitwidth))
 
         # pipeline stage 3
-        x             = Signal(signed(bitwidth))
-        x             = Signal(signed(bitwidth))
-        y             = Signal(signed(bitwidth))
+        x_stage_3     = Signal(signed(bitwidth))
+        y_stage_3     = Signal(signed(bitwidth))
         escape        = Signal()
         maxed_out     = Signal()
         result_read   = Signal(reset=1)
@@ -62,18 +74,14 @@ class Mandelbrot(Elaboratable):
 
         with m.If(self.result_read_in):
             m.d.sync += [
-                result_read.eq(1),
-                self.result_ready_out.eq(0),
-                maxed_out.eq(0),
-                escape.eq(0),
-                iteration.eq(0)
+                result_read              .eq(1),
+                self.result_ready_out    .eq(0),
+                Cat(self.escape_out)     .eq(0),
+                Cat(self.iterations_out) .eq(0),
             ]
 
         m.d.comb += [
             self.busy_out.eq(running | ~result_read),
-            self.iterations_out.eq(iteration),
-            self.escape_out.eq(escape),
-            self.maxed_out.eq(maxed_out),
             four.eq(Const(4, signed(bitwidth)) << scale),
         ]
 
@@ -89,8 +97,8 @@ class Mandelbrot(Elaboratable):
 
         if test:
             m.d.comb += [
-                self.x.eq(x),
-                self.y.eq(y),
+                self.x.eq(x_stage_0),
+                self.y.eq(y_stage_0),
                 self.xx_plus_yy.eq(xx_plus_yy),
             ]
 
@@ -100,85 +108,105 @@ class Mandelbrot(Elaboratable):
         with m.If(stage_enable[0]):
             # stage 0
             m.d.comb += [
-                factor1.eq(x),
-                factor2.eq(x),
+                factor1.eq(x_stage_3),
+                factor2.eq(x_stage_3),
             ]
             m.d.sync += [
-                xx.eq(two_times_product >> 1),
+                xx_stage_0.eq(two_times_product >> 1),
+                x_stage_0.eq(x_stage_3),
+                y_stage_0.eq(y_stage_3),
             ]
 
         with m.If(stage_enable[1]):
             # stage 1
             m.d.comb += [
-                factor1.eq(y),
-                factor2.eq(y),
+                factor1.eq(y_stage_0),
+                factor2.eq(y_stage_0),
             ]
             m.d.sync += [
-                yy.eq(two_times_product >> 1),
+                yy_stage_1.eq(two_times_product >> 1),
+                xx_stage_1.eq(xx_stage_0),
+                x_stage_1.eq(x_stage_0),
+                y_stage_1.eq(y_stage_0),
             ]
 
         with m.If(stage_enable[2]):
             # stage 2
             m.d.comb += [
-                factor1.eq(x),
-                factor2.eq(y),
+                factor1.eq(x_stage_1),
+                factor2.eq(y_stage_1),
             ]
             m.d.sync += [
-                two_xy.eq(two_times_product),
-                xx_plus_yy    .eq(xx + yy),
-                xx_minus_yy   .eq(xx - yy),
+                two_xy        .eq(two_times_product),
+                xx_plus_yy    .eq(xx_stage_1 + yy_stage_1),
+                xx_minus_yy   .eq(xx_stage_1 - yy_stage_1),
             ]
 
         with m.If(stage_enable[3]):
             # stage 3
-            m.d.sync += [
-                x             .eq(xx_minus_yy   + self.cx_in),
-                y             .eq(two_xy        + self.cy_in),
+            m.d.comb += [
                 escape        .eq(xx_plus_yy > four),
-                iteration     .eq(iteration + 1),
                 maxed_out     .eq(iteration >= self.max_iterations_in),
             ]
+            m.d.sync += [
+                x_stage_3     .eq(xx_minus_yy   + self.cx_in[result_no]),
+                y_stage_3     .eq(two_xy        + self.cy_in[result_no]),
+                result_no     .eq(result_no + 1),
+            ]
+
+            with m.If(result_no == (self.stages - 1)):
+                m.d.sync += iteration.eq(iteration + 1)
+
+            with m.If(escape | maxed_out):
+                m.d.sync += [
+                    self.escape_out[result_no].eq(escape),
+                    self.iterations_out[result_no].eq(iteration + 1),
+                    done[result_no].eq(1),
+                ]
 
         with m.FSM() as fsm:
             m.d.comb += running.eq(~fsm.ongoing("IDLE"))
             with m.State("IDLE"):
+                m.d.comb += stage_enable.eq(0b0000)
                 with m.If(self.start_in):
                     m.d.sync += [
-                        x             .eq(self.cx_in),
-                        y             .eq(self.cy_in),
-                        two_xy        .eq(0),
-                        xx            .eq(0),
-                        yy            .eq(0),
-                        xx_plus_yy    .eq(0),
+                        x_stage_0   .eq(0),
+                        y_stage_0   .eq(0),
+                        xx_stage_0  .eq(0),
+                        x_stage_1   .eq(0),
+                        y_stage_1   .eq(0),
+                        xx_stage_1  .eq(0),
+                        yy_stage_1  .eq(0),
+                        two_xy      .eq(0),
+                        xx_plus_yy  .eq(0),
+                        x_stage_3   .eq(0),
+                        y_stage_3   .eq(0),
 
-                        escape                .eq(0),
-                        maxed_out             .eq(0),
                         iteration             .eq(0),
                         self.result_ready_out .eq(0),
                         result_read           .eq(0),
+                        Cat(done)             .eq(0),
                     ]
-                    m.next = "S0"
+                    m.next = "PRIME0"
 
-            with m.State("S0"):
-                m.d.comb += stage_enable.eq(1)
-                with m.If(escape | maxed_out):
-                    m.d.comb += self.done_out.eq(1)
+            # prime the pipeline
+            with m.State("PRIME0"):
+                m.d.comb += stage_enable.eq(0b0001)
+                m.next = "PRIME1"
+
+            with m.State("PRIME1"):
+                m.d.comb += stage_enable.eq(0b1001)
+                m.next = "PRIME2"
+
+            with m.State("PRIME2"):
+                m.d.comb += stage_enable.eq(0b1101)
+                m.next = "RUNNING"
+
+            with m.State("RUNNING"):
+                m.d.comb += stage_enable.eq(0b1111)
+                with m.If(Cat(done) == 0b1111):
                     m.d.sync += self.result_ready_out.eq(1)
                     m.next = "IDLE"
-                with m.Else():
-                    m.next = "S1"
-
-            with m.State("S1"):
-                m.d.comb += stage_enable.eq(1 << 1)
-                m.next = "S2"
-
-            with m.State("S2"):
-                m.d.comb += stage_enable.eq(1 << 2)
-                m.next = "S3"
-
-            with m.State("S3"):
-                m.d.comb += stage_enable.eq(1 << 3)
-                m.next = "S0"
 
         return m
 
@@ -218,16 +246,22 @@ class MandelbrotTest(GatewareTestCase):
         scale = self.FRAGMENT_ARGUMENTS['fraction_bits']
         dut = self.dut
         start_x = 1 << scale
-        yield dut.cx_in.eq(start_x)
-        yield dut.cy_in.eq(0)
+        yield dut.cx_in[0].eq(start_x)
+        yield dut.cy_in[0].eq(0)
+        yield dut.cx_in[1].eq(start_x << 1)
+        yield dut.cy_in[1].eq(0)
+        yield dut.cx_in[2].eq(start_x << 2)
+        yield dut.cy_in[2].eq(0)
+        yield dut.cx_in[3].eq(start_x << 3)
+        yield dut.cy_in[3].eq(0)
         yield dut.max_iterations_in.eq(110)
         yield
         yield from self.pulse(dut.start_in)
         yield
         yield
 
-        self.assertEqual((yield dut.x), start_x)
-        yield from self.advance_cycles(4)
+        #self.assertEqual((yield dut.x), start_x)
+        yield from self.advance_cycles(16)
 
         # 1 * 1 + 1 = 2
         first_iter = start_x + start_x
