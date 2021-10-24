@@ -67,12 +67,18 @@ class FractalView():
         radius_pixels = min(width, height) / 2
         step = radius / radius_pixels
 
+        self.radius = radius
+        self.center_x = center_x
+        self.center_y = center_y
         self.step = float2fix(step)
         self.corner_x = float2fix(center_x - (width/2)  * step)
         self.corner_y = float2fix(center_y - (height/2) * step)
         self.width  = width
         self.height = height
         self.max_iterations = max_iterations
+
+    def update_size(self, width, height, iterations):
+        self.update(center_x=self.center_x, center_y=self.center_y, radius=self.radius, width=width, height=height, max_iterations=iterations)
 
     def get_center(self):
         center_x = fix2float(self.corner_x) + fix2float(self.step) * (self.width  / 2)
@@ -304,9 +310,14 @@ if __name__ == "__main__":
         elif argv[1] == "png":
             tstart = time.perf_counter()
 
-            if len(argv) == 4:
-                view.width  = int(argv[2])
-                view.height = int(argv[3])
+            if len(argv) >= 4:
+                width  = int(argv[2])
+                height = int(argv[3])
+                if (len(argv) == 5):
+                    iterations = int(argv[4])
+                    view.update_size(width, height, iterations)
+                else:
+                    view.update_size(width, height, 170)
 
             print("Rendering view to PNG:")
             lower_left = view.get_lower_left_corner()
