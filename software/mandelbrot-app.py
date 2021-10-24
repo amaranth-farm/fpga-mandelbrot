@@ -87,6 +87,15 @@ class FractalView():
         x, y = self.get_center()
         return f"center_x: {x}, center_y: {y}, radius: {self.get_radius()}"
 
+    def get_lower_left_corner(self):
+        return (fix2float(self.corner_x), fix2float(self.corner_y))
+
+    def get_upper_right_corner(self):
+        x = fix2float(self.corner_x) + self.width  * fix2float(self.step)
+        y = fix2float(self.corner_y) + self.height * fix2float(self.step)
+        return (x, y)
+
+
 default_view = FractalView(center_x=-0.75,    center_y=0,             radius=1.25,        max_iterations=170,  width=1550, height=1080)
 swirl        = FractalView(center_x=-0.74791, center_y=0.0888909763,  radius=6.9921e-5,   max_iterations=4096, width=1550, height=1080)
 
@@ -299,6 +308,11 @@ if __name__ == "__main__":
                 view.width  = int(argv[2])
                 view.height = int(argv[3])
 
+            print("Rendering view to PNG:")
+            lower_left = view.get_lower_left_corner()
+            print(f"lower left corner: x: {lower_left[0]} y: {lower_left[1]}")
+            upper_right = view.get_upper_right_corner()
+            print(f"upper right corner: x: {upper_right[0]} y: {upper_right[1]}")
             usb_reader = lambda: send_command(9, view, debug=False)
             usb_thread = threading.Thread(target=usb_reader, daemon=True)
             usb_thread.start()
