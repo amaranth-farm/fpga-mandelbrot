@@ -1,9 +1,9 @@
-from nmigen import *
-from nmigen.build      import Platform
-from nmigen.lib.coding import PriorityEncoder
+from amaranth            import *
+from amaranth.build      import Platform
+from amaranth.lib.coding import PriorityEncoder
 
-from nmigen_library.test   import GatewareTestCase, sync_test_case
-from nmigen_library.stream import StreamInterface
+from amlib.test          import GatewareTestCase, sync_test_case
+from amlib.stream        import StreamInterface
 
 from mandelbrot import Mandelbrot
 

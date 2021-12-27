@@ -1,6 +1,6 @@
-from nmigen import *
-from nmigen.build import Platform
-from nmigen_library.test   import GatewareTestCase, sync_test_case
+from amaranth       import *
+from amaranth.build import Platform
+from amlib.test     import GatewareTestCase, sync_test_case
 
 class Mandelbrot(Elaboratable):
     def __init__(self, *, bitwidth=128, fraction_bits=120, test=False):

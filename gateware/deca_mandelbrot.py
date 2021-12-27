@@ -4,12 +4,12 @@
 # SPDX-License-Identifier: CERN-OHL-W-2.0
 import os
 
-from nmigen              import *
-from nmigen.lib.fifo     import AsyncFIFO
+from amaranth            import *
+from amaranth.lib.fifo   import AsyncFIFO
 
-from nmigen_library.debug.ila   import StreamILA, ILACoreParameters
-from nmigen_library.stream      import connect_stream_to_fifo, connect_fifo_to_stream
-from nmigen_library.io.max7219  import SerialLEDArray, NumberToSevenSegmentHex
+from amlib.debug.ila     import StreamILA, ILACoreParameters
+from amlib.stream        import connect_stream_to_fifo, connect_fifo_to_stream
+from amlib.io.max7219    import SerialLEDArray, NumberToSevenSegmentHex
 
 from luna                import top_level_cli
 from luna.usb2           import USBDevice, USBStreamInEndpoint, USBStreamOutEndpoint
