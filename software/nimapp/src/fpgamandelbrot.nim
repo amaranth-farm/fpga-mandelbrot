@@ -1,6 +1,7 @@
 import nimgl/imgui, nimgl/imgui/[impl_opengl, impl_glfw]
 import nimgl/[opengl, glfw]
-import strformat# Copyright 2018, NimGL contributors.
+import pkg/nint128
+import usb
 
 const WIDTH        = 3840
 const HEIGHT       = 2100
@@ -8,7 +9,31 @@ const RATIO        = 3840 / 2100
 
 const ARRAY_WIDTH  = 6000
 const ARRAY_HEIGHT = (int)(ARRAY_WIDTH / RATIO)
-var image {.align(128).}: array[0..(ARRAY_WIDTH * ARRAY_HEIGHT * 3), byte]
+var
+    image {.align(128).}: array[0..(ARRAY_WIDTH * ARRAY_HEIGHT * 3), byte]
+    colortable:           array[0..15, array[0..2, byte]]
+
+colortable = [
+    [ 66'u8,  30,  15],
+    [ 25'u8,   7,  26],
+    [  9'u8,   1,  47],
+    [  4'u8,   4,  73],
+    [  0'u8,   7, 100],
+    [ 12'u8,  44, 138],
+    [ 24'u8,  82, 177],
+    [ 57'u8, 125, 209],
+    [134'u8, 181, 229],
+    [211'u8, 236, 248],
+    [241'u8, 233, 191],
+    [248'u8, 201,  95],
+    [255'u8, 170,   0],
+    [204'u8, 128,   0],
+    [153'u8,  87,   0],
+    [106'u8,  52,   3],
+]
+
+const SCALE      = 8 * 8
+const BYTE_WIDTH = SCALE + 8
 
 proc drawImage(width: int, height: int) =
     for x in 0..<width:

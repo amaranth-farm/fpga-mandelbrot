@@ -13,4 +13,8 @@ backend       = "cpp"
 
 requires "nim >= 1.6.6"
 requires "nimgl >= 0.3.6"
+requires "byteutils"
 requires "imgui"
+requires "libusb"
+requires "nint128"
+requires "struct"
