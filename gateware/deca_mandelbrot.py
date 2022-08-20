@@ -9,7 +9,8 @@ from amaranth.lib.fifo   import AsyncFIFO
 
 from amlib.debug.ila     import StreamILA, ILACoreParameters
 from amlib.stream        import connect_stream_to_fifo, connect_fifo_to_stream
-from amlib.io.max7219    import SerialLEDArray, NumberToSevenSegmentHex
+from amlib.io.led        import NumberToSevenSegmentHex
+from amlib.io.max7219    import SerialLEDArray
 
 from luna                import top_level_cli
 from luna.usb2           import USBDevice, USBStreamInEndpoint, USBStreamOutEndpoint
