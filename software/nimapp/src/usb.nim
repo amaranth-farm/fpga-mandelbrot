@@ -1,9 +1,15 @@
 import libusb, strutils
 import std/random
+import std/sugar
 import system
 import pkg/nint128
 import struct
 import sequtils
+
+let debug = true
+
+proc seq_hex(s: seq[byte]): string =
+    return "[" & join(collect(for e in s: e.toHex().toLowerAscii()), ", ") & "]"
 
 proc printDevice(device: ptr LibusbDevice) =
     # Print information about the given USB device
@@ -30,25 +36,29 @@ proc bye(devices: ptr LibusbDeviceArray, exitcode: int) =
     libusbExit(nil)
     quit(exitcode)
 
-proc transfer(devHandle: ptr LibusbDeviceHandle, ep: char, data: ptr char, length: uint): cint =
+proc transfer(devHandle: ptr LibusbDeviceHandle, ep: char, data: ptr char, length: uint, timeout: uint): cint =
     var actualLength: cint
-    let s = libusbBulkTransfer(devHandle, ep, data, (cint)length, addr actualLength, (cuint)1)
+    let s = libusbBulkTransfer(devHandle, ep, data, (cint)length, addr actualLength, (cuint)timeout)
 
     case (LibusbError)s:
      of Libusberror.success:
+        if debug:
+            echo "transfer success"
         discard
      of Libusberror.timeout:
-        discard # stdout.write "T"
+        if debug:
+            echo "transfer timeout"
+        discard
      else:
-        stdout.write "E"
+        stderr.write "USB transfer Error"
 
     return actualLength
 
-proc receive(devHandle: ptr LibusbDeviceHandle, data: ptr byte, length: uint): cint =
-    return transfer(devHandle, (char)0x81, cast[ptr char](data), length)
+proc receive(devHandle: ptr LibusbDeviceHandle, data: ptr byte, length: uint, timeout: uint): cint =
+    return transfer(devHandle, (char)0x81, cast[ptr char](data), length, timeout)
 
-proc send(devHandle: ptr LibusbDeviceHandle, data: ptr byte, length: uint): cint =
-    return transfer(devHandle, (char)0x1, cast[ptr char](data), length)
+proc send(devHandle: ptr LibusbDeviceHandle, data: ptr byte, length: uint, timeout: uint): cint =
+    return transfer(devHandle, (char)0x1, cast[ptr char](data), length, timeout)
 
 proc usb_init(): (ptr LibusbDeviceHandle, ptr LibusbDeviceArray) =
     randomize()
@@ -94,9 +104,9 @@ proc usb_init(): (ptr LibusbDeviceHandle, ptr LibusbDeviceArray) =
 
         return (devHandle, devices)
 
-var data: array[4000*4000, byte]
-
-proc send_request(devHandle: ptr LibusbDeviceHandle, bytewidth: uint8, width: uint16, height: uint16, max_iterations: uint32, corner_x: UInt128, corner_y: UInt128, step: UInt128) =
+proc send_request(devHandle: ptr LibusbDeviceHandle, bytewidth: uint8,
+                  width: uint16, height: uint16, max_iterations: uint32,
+                  corner_x: UInt128, corner_y: UInt128, step: UInt128): iterator(): array[256, byte] =
     var
         command_header     = cast[seq[byte]](pack("HHI", width-1, height-1, max_iterations))
         corner_x_bytes     = corner_x.toBytesLE()[0..<bytewidth]
@@ -104,17 +114,36 @@ proc send_request(devHandle: ptr LibusbDeviceHandle, bytewidth: uint8, width: ui
         step_bytes         = step.toBytesLE()[0..<bytewidth]
         command: seq[byte] = concat(command_header, corner_x_bytes, corner_y_bytes, step_bytes, @[0xa5'u8])
 
-    var r = send(devHandle, addr command[0], (uint)len(command))
+    var r = send(devHandle, addr command[0], (uint)len(command), 100)
 
-    echo $command
+    if debug:
+        echo "corner_x: ", $seq_hex(corner_x_bytes)
+        echo "corner_y: ", $seq_hex(corner_y_bytes)
+        echo "step: ", $seq_hex(step_bytes)
+
+    echo $seq_hex(command)
     echo r
 
-    r = receive(devHandle, addr data[0], 1000)
-    echo r
+    let timeout = (uint)max(1, ((float32)max_iterations) / 1000.0)
 
+    var data: array[256, byte]
+
+    return iterator(): array[256, byte] =
+        while true:
+            r = receive(devHandle, addr data[0], 256, timeout)
+            if r > 0:
+                yield data
+            else:
+                break
 
 let usb = usb_init()
 
+# [0x73, 0x7,    0xd3, 0x7, 0xaa, 0x0, 0x0, 0x0,
+# 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xfe,
+# 0x0, 0x60, 0x1b, 0xb1, 0x2e, 0x3d, 0xe6, 0xaf, 0xfe,
+# 0x5c, 0xc3, 0xa4, 0xb1, 0xb9, 0xde, 0x55, 0x0, 0x0, 0xa5]
 
-send_request(usb[0], 8, 1024, 1024, 1024, u128("0x998877665544332211"), u128("0x998877665544332211"), u128("0x998877665544332211"))
-quit(0)
+if debug:
+    for i in send_request(usb[0], 9, 1024, 1024, 0xaa, u128("0xfe0000000000000000"), u128("0xfeafe63d2eb11b6000"), u128("0x55deb9b1a4c35c")):
+        echo $seq_hex(@i)
+    quit(0)
