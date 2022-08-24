@@ -169,7 +169,7 @@ proc main() =
         igInputText("center x", center_x_str, (uint)len(center_x_buf), CallbackCharFilter, fixedpointnumber)
         igInputText("center y", center_y_str, (uint)len(center_y_buf), CallbackCharFilter, fixedpointnumber)
         igInputText("radius",   radius_str,   (uint)len(radius_buf),   CallbackCharFilter, fixedpointnumber)
-        igSliderInt("iterations", addr max_iterations, 0'i32, 16384'i32)
+        igSliderInt("iterations", addr max_iterations, 10'i32, 10000000'i32, flags=ImGuiSliderFlags.Logarithmic)
 
         center_x = strToFp128($center_x_str)
         center_y = strToFp128($center_y_str)
@@ -198,7 +198,7 @@ proc main() =
 
             igProgressBar(cast[float32](pixel_y)/cast[float32](height))
 
-        igText("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / igGetIO().framerate, igGetIO().framerate)
+        igText("%.3f ms/frame (%.1f FPS)", 1000.0f / igGetIO().framerate, igGetIO().framerate)
         igEnd()
 
         #igShowMetricsWindow()
