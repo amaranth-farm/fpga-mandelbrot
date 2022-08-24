@@ -60,6 +60,27 @@ proc fillWith(buf: ptr array[128, byte], s: string) =
     for i in 0..<len(s):
         buf[i] = (byte)s[i]
 
+proc render(v: void) {.thread.} =
+    let req = send_request(usb[0], 9, 2048, 2048, 0xaa, u128("0xfe0000000000000000"), u128("0xfeafe63d2eb11b6000"), u128("0x55deb9b1a4c35c"))
+    var r = newSeq[byte](0)
+    for response in req():
+        r = r & @response
+        while len(r) >= 6:
+            let x = (((uint)r[1]) shl 8) or (uint)r[0]
+            let y = (((uint)r[3]) shl 8) or (uint)r[2]
+            let p = r[4]
+            let s = r[5]
+            if s != 0xa5:
+                echo seq_hex(r[0..<6])
+                echo " ====> unexpected byte: ", s
+                r = r[6..r.high]
+                echo "rest: ", len(r)
+                continue
+
+            #echo $(x, y, p)
+            putPixel((int)x, (int)y, p)
+            r = r[6..r.high]
+
 proc main() =
     doAssert glfwInit()
 
@@ -145,25 +166,9 @@ proc main() =
         igText("  ")
 
         if igButton("Calculate", ImVec2(x: 0, y: 0)):
-            let req = send_request(usb[0], 9, 1024, 1024, 0xaa, u128("0xfe0000000000000000"), u128("0xfeafe63d2eb11b6000"), u128("0x55deb9b1a4c35c"))
-            var r = newSeq[byte](0)
-            for response in req():
-                r = r & @response
-                while len(r) >= 6:
-                    let x = (((uint)r[1]) shl 8) or (uint)r[0]
-                    let y = (((uint)r[3]) shl 8) or (uint)r[2]
-                    let p = r[4]
-                    let s = r[5]
-                    if s != 0xa5:
-                        echo seq_hex(r[0..<6])
-                        echo " ====> unexpected byte: ", s
-                        r = r[6..r.high]
-                        echo "rest: ", len(r)
-                        continue
-
-                    #echo $(x, y, p)
-                    putPixel((int)x, (int)y, p)
-                    r = r[6..r.high]
+            render()
+            #var t: Thread[void]
+            #createThread(t, render)
 
         igSameLine()
 
