@@ -5,7 +5,7 @@ import strutils
 const SCALE      = 8 * 8
 const BYTE_WIDTH = SCALE shr 3 + 8
 
-proc strToFp128*(s: string): UInt128 =
+proc strToFp128*(s: string): Int128 =
     var
         abs:   string
         whole: string
@@ -33,15 +33,12 @@ proc strToFp128*(s: string): UInt128 =
         else:
             u128(0)
 
-    let absresult = whole.parseUInt128 shl SCALE + fraction
-    if negative:
-        return not absresult + 1
-    return absresult
+    let absresult = cast[Int128](whole.parseUInt128 shl SCALE + fraction)
+    if negative: -absresult: else: absresult
 
-proc fp128ToStr*(n: UInt128): string =
-    let sn = cast[Int128](n)
+proc fp128ToStr*(n: Int128): string =
     var sign = ""
-    let absn = if (sn < i128(0)): sign = "-"; -sn else: sn
+    let absn = if (n < i128(0)): sign = "-"; -n else: n
     let whole = $(absn shr SCALE)
     let frac_mask = cast[Int128](u128(0xffffffffffffffff))
     var frac = absn and frac_mask
@@ -65,15 +62,15 @@ proc fp128ToStr*(n: UInt128): string =
         sign & whole
 
 proc test() =
-    let negpi = strToFp128("-3.14159265359")
+    let negpi = cast[UInt128](strToFp128("-3.14159265359"))
     echo negpi.toHex()
-    echo strToFp128("-1").toHex()
-    echo strToFp128("1").toHex()
-    echo strToFp128("1.25").toHex()
-    echo strToFp128("1.32").toHex()
+    echo cast[UInt128](strToFp128("-1")).toHex()
+    echo cast[UInt128](strToFp128("1")).toHex()
+    echo cast[UInt128](strToFp128("1.25")).toHex()
+    echo cast[UInt128](strToFp128("1.32")).toHex()
     echo "              998877665544332211"
 
-    echo fp128ToStr(negpi)
+    echo fp128ToStr(cast[Int128](negpi))
     echo fp128ToStr(strToFp128("-1"))
     echo fp128ToStr(strToFp128("1"))
     echo fp128ToStr(strToFp128("1.25"))

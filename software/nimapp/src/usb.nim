@@ -106,12 +106,12 @@ proc usb_init*(): (ptr LibusbDeviceHandle, ptr LibusbDeviceArray) =
 
 proc send_request*(devHandle: ptr LibusbDeviceHandle, bytewidth: uint8,
                   width: uint16, height: uint16, max_iterations: uint32,
-                  corner_x: UInt128, corner_y: UInt128, step: UInt128): iterator(): array[256, byte] =
+                  corner_x: Int128, corner_y: Int128, step: Int128): iterator(): array[256, byte] =
     let
         command_header     = cast[seq[byte]](pack("HHI", width-1, height-1, max_iterations))
-        corner_x_bytes     = corner_x.toBytesLE()[0..<bytewidth]
-        corner_y_bytes     = corner_y.toBytesLE()[0..<bytewidth]
-        step_bytes         = step.toBytesLE()[0..<bytewidth]
+        corner_x_bytes     = cast[UInt128](corner_x).toBytesLE()[0..<bytewidth]
+        corner_y_bytes     = cast[UInt128](corner_y).toBytesLE()[0..<bytewidth]
+        step_bytes         = cast[UInt128](step)    .toBytesLE()[0..<bytewidth]
 
     var command: seq[byte] = concat(command_header, corner_x_bytes, corner_y_bytes, step_bytes, @[0xa5'u8])
 
@@ -144,6 +144,6 @@ let usb* {. global .} = usb_init()
 # 0x5c, 0xc3, 0xa4, 0xb1, 0xb9, 0xde, 0x55, 0x0, 0x0, 0xa5]
 
 if debug:
-    for i in send_request(usb[0], 9, 1024, 1024, 0xaa, u128("0xfe0000000000000000"), u128("0xfeafe63d2eb11b6000"), u128("0x55deb9b1a4c35c")):
+    for i in send_request(usb[0], 9, 1024, 1024, 0xaa, i128("0xfe0000000000000000"), i128("0xfeafe63d2eb11b6000"), i128("0x55deb9b1a4c35c")):
         echo $seq_hex(@i)
     quit(0)

@@ -69,9 +69,9 @@ proc fillWith(buf: ptr array[128, byte], s: string) =
     for i in 0..<len(s):
         buf[i] = (byte)s[i]
 
-proc render(v: void): iterator(): Pixel =
+proc render(corner_x: Int128, corner_y: Int128, max_iterations: uint32, step: Int128): iterator(): Pixel =
     echo "render width: ", width, " height: ", height
-    let req = send_request(usb[0], 9, (uint16)width, (uint16)height, 0xaa, u128("0xfe0000000000000000"), u128("0xfeafe63d2eb11b6000"), u128("0x55deb9b1a4c35c"))
+    let req = send_request(usb[0], 9, (uint16)width, (uint16)height, max_iterations, corner_x, corner_y, step)
     var r = newSeq[byte](0)
 
     return iterator(): Pixel =
@@ -151,12 +151,11 @@ proc main() =
     (addr radius_buf).fillWith("1.25")
 
     var
-        center_x:  UInt128
-        center_y:  UInt128
-        radius:    UInt128
-        corner_x:  UInt128
-        corner_y:  UInt128
-        pixel_iter: iterator(): Pixel
+        center_x:       Int128
+        center_y:       Int128
+        radius:         Int128
+        pixel_iter:     iterator(): Pixel
+        max_iterations: int32 = 256
 
     while not w.windowShouldClose:
         glfwPollEvents()
@@ -170,25 +169,34 @@ proc main() =
         igInputText("center x", center_x_str, (uint)len(center_x_buf), CallbackCharFilter, fixedpointnumber)
         igInputText("center y", center_y_str, (uint)len(center_y_buf), CallbackCharFilter, fixedpointnumber)
         igInputText("radius",   radius_str,   (uint)len(radius_buf),   CallbackCharFilter, fixedpointnumber)
+        igSliderInt("iterations", addr max_iterations, 0'i32, 16384'i32)
 
-        center_x = cast[UInt128](strToFp128($center_x_str))
-        center_y = cast[UInt128](strToFp128($center_y_str))
-        radius   = cast[UInt128](strToFp128($radius_str))
+        center_x = strToFp128($center_x_str)
+        center_y = strToFp128($center_y_str)
+        radius   = strToFp128($radius_str)
 
         igText("  ")
 
         if igButton("Calculate", ImVec2(x: 0, y: 0)):
-            pixel_iter = render()
+            clearImage(width, height)
+            let
+                radius_pixels = i128(min(width, height) shr 1)
+                step = radius div radius_pixels
+                corner_x = center_x - (i128(width) shr 1)  * step
+                corner_y = center_y - (i128(height) shr 1) * step
+
+            pixel_iter = render(corner_x, corner_y, 256, step)
 
         if pixel_iter != nil and not finished(pixel_iter):
+            var pixel_y: uint
             for _ in 1..(10 * width):
                 if finished(pixel_iter):
                     break
-                putPixel(pixel_iter(), (uint)width)
+                let pixel = pixel_iter()
+                putPixel(pixel, (uint)width)
+                pixel_y = pixel.y
 
-        igSameLine()
-
-        igText(center_x_str)
+            igProgressBar(cast[float32](pixel_y)/cast[float32](height))
 
         igText("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / igGetIO().framerate, igGetIO().framerate)
         igEnd()
