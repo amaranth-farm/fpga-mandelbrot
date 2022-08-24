@@ -1,15 +1,14 @@
 import nimgl/imgui, nimgl/imgui/[impl_opengl, impl_glfw]
 import nimgl/[opengl, glfw]
 import pkg/nint128
-import struct
 import fp128
 import usb
 
 const WIDTH        = 3840
 const HEIGHT       = 2100
-const RATIO        = 3840 / 2100
+const RATIO        = 1 #3840 / 2100
 
-const ARRAY_WIDTH  = 6000
+const ARRAY_WIDTH  = 3000
 const ARRAY_HEIGHT = (int)(ARRAY_WIDTH / RATIO)
 var
     image {.align(128).}: array[0..(ARRAY_WIDTH * ARRAY_HEIGHT * 3), byte]
@@ -42,9 +41,9 @@ proc drawImage(width: int, height: int) =
             image[y * width * 3 + x * 3 + 2] = (byte)(x + y)
 
 proc putPixel(x: int, y: int, val: byte) =
-    image[y * ARRAY_WIDTH * 3 + x * 3 + 0 ] = val and 0xf'u8
-    image[y * ARRAY_WIDTH * 3 + x * 3 + 1 ] = val and 0xf'u8
-    image[y * ARRAY_WIDTH * 3 + x * 3 + 2 ] = val and 0xf'u8
+    image[y * ARRAY_WIDTH * 3 + x * 3 + 0 ] = val
+    image[y * ARRAY_WIDTH * 3 + x * 3 + 1 ] = val
+    image[y * ARRAY_WIDTH * 3 + x * 3 + 2 ] = val
 
 proc clearImage(width: int, height: int) =
     for x in 0..<(width * height * 3):
@@ -147,14 +146,24 @@ proc main() =
 
         if igButton("Calculate", ImVec2(x: 0, y: 0)):
             let req = send_request(usb[0], 9, 1024, 1024, 0xaa, u128("0xfe0000000000000000"), u128("0xfeafe63d2eb11b6000"), u128("0x55deb9b1a4c35c"))
+            var r = newSeq[byte](0)
             for response in req():
-                var r = @response
+                r = r & @response
                 while len(r) >= 6:
-                    let x = (int)r[1] shl 8 or r[0]
-                    let y = (int)r[3] shl 8 or r[2]
+                    let x = (((uint)r[1]) shl 8) or (uint)r[0]
+                    let y = (((uint)r[3]) shl 8) or (uint)r[2]
                     let p = r[4]
-                    putPixel(x, y, p)
-                    r = r[6..high(r)]
+                    let s = r[5]
+                    if s != 0xa5:
+                        echo seq_hex(r[0..<6])
+                        echo " ====> unexpected byte: ", s
+                        r = r[6..r.high]
+                        echo "rest: ", len(r)
+                        continue
+
+                    #echo $(x, y, p)
+                    putPixel((int)x, (int)y, p)
+                    r = r[6..r.high]
 
         igSameLine()
 
@@ -168,15 +177,19 @@ proc main() =
         glActiveTexture(GL_TEXTURE0)
         const inWindow = true
         if inWindow:
-            igBegin("Fractal", nil, NoBringToFrontOnFocus)
+            igBegin("Fractal", nil, ImGuiWindowFlags.NoBringToFrontOnFocus)
             var width  = ((int)igGetWindowContentRegionWidth()) and not 0x3
             var height = ((int)igGetWindowHeight() - 50) and not 0x3
 
             if width != prevWidth or height != prevHeight:
-                clearImage(WIDTH, HEIGHT)
-                drawImage(width, height)
+                #clearImage(WIDTH, HEIGHT)
+                #drawImage(width, height)
                 prevWidth  = width
                 prevHeight = height
+
+            # TMP TMP TMP
+            width = ARRAY_WIDTH
+            height = ARRAY_HEIGHT
 
             glTexImage2D(GL_TEXTURE_2D, (GLint)0, (GLint)GL_RGB, (GLsizei)width, (GLsizei)height, (GLint)0, GL_RGB, GL_UNSIGNED_BYTE, addr image)
             igImage(cast[ImTextureID](tof), ImVec2(x: (float32)width, y: (float32)height))
