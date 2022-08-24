@@ -303,6 +303,10 @@ def gtk_gui(orbits=False):
 
 from sys import argv
 if __name__ == "__main__":
+    # f = (float2fix(-3.14159265359).to_bytes(9, byteorder='big', signed=True))
+    # print([hex(i) for i in f])
+    # quit()
+
     if len(argv) > 1:
         if argv[1] == "debug":
             send_command(9, view, debug=True)

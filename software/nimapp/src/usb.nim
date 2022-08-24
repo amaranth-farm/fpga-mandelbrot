@@ -6,12 +6,12 @@ import pkg/nint128
 import struct
 import sequtils
 
-let debug = true
+let debug = false
 
-proc seq_hex(s: seq[byte]): string =
+proc seq_hex*(s: seq[byte]): string =
     return "[" & join(collect(for e in s: e.toHex().toLowerAscii()), ", ") & "]"
 
-proc printDevice(device: ptr LibusbDevice) =
+proc printDevice*(device: ptr LibusbDevice) =
     # Print information about the given USB device
     var desc: LibusbDeviceDescriptor
     let r = libusbGetDeviceDescriptor(device, addr desc)
@@ -31,7 +31,7 @@ proc printDevice(device: ptr LibusbDevice) =
             " (bus ", libusbGetBusNumber(device),
             ", device ", libusbGetDeviceAddress(device), ")", p
 
-proc bye(devices: ptr LibusbDeviceArray, exitcode: int) =
+proc bye*(devices: ptr LibusbDeviceArray, exitcode: int) =
     libusbFreeDeviceList(devices, 1)
     libusbExit(nil)
     quit(exitcode)
@@ -60,7 +60,7 @@ proc receive(devHandle: ptr LibusbDeviceHandle, data: ptr byte, length: uint, ti
 proc send(devHandle: ptr LibusbDeviceHandle, data: ptr byte, length: uint, timeout: uint): cint =
     return transfer(devHandle, (char)0x1, cast[ptr char](data), length, timeout)
 
-proc usb_init(): (ptr LibusbDeviceHandle, ptr LibusbDeviceArray) =
+proc usb_init*(): (ptr LibusbDeviceHandle, ptr LibusbDeviceArray) =
     randomize()
 
     # initialize library
@@ -104,15 +104,16 @@ proc usb_init(): (ptr LibusbDeviceHandle, ptr LibusbDeviceArray) =
 
         return (devHandle, devices)
 
-proc send_request(devHandle: ptr LibusbDeviceHandle, bytewidth: uint8,
+proc send_request*(devHandle: ptr LibusbDeviceHandle, bytewidth: uint8,
                   width: uint16, height: uint16, max_iterations: uint32,
                   corner_x: UInt128, corner_y: UInt128, step: UInt128): iterator(): array[256, byte] =
-    var
+    let
         command_header     = cast[seq[byte]](pack("HHI", width-1, height-1, max_iterations))
         corner_x_bytes     = corner_x.toBytesLE()[0..<bytewidth]
         corner_y_bytes     = corner_y.toBytesLE()[0..<bytewidth]
         step_bytes         = step.toBytesLE()[0..<bytewidth]
-        command: seq[byte] = concat(command_header, corner_x_bytes, corner_y_bytes, step_bytes, @[0xa5'u8])
+
+    var command: seq[byte] = concat(command_header, corner_x_bytes, corner_y_bytes, step_bytes, @[0xa5'u8])
 
     var r = send(devHandle, addr command[0], (uint)len(command), 100)
 
@@ -120,9 +121,8 @@ proc send_request(devHandle: ptr LibusbDeviceHandle, bytewidth: uint8,
         echo "corner_x: ", $seq_hex(corner_x_bytes)
         echo "corner_y: ", $seq_hex(corner_y_bytes)
         echo "step: ", $seq_hex(step_bytes)
-
-    echo $seq_hex(command)
-    echo r
+        echo $seq_hex(command)
+        echo "request bytes sent: ", r
 
     let timeout = (uint)max(1, ((float32)max_iterations) / 1000.0)
 
@@ -136,7 +136,7 @@ proc send_request(devHandle: ptr LibusbDeviceHandle, bytewidth: uint8,
             else:
                 break
 
-let usb = usb_init()
+let usb* = usb_init()
 
 # [0x73, 0x7,    0xd3, 0x7, 0xaa, 0x0, 0x0, 0x0,
 # 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0xfe,

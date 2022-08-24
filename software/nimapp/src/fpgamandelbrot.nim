@@ -1,6 +1,8 @@
 import nimgl/imgui, nimgl/imgui/[impl_opengl, impl_glfw]
 import nimgl/[opengl, glfw]
 import pkg/nint128
+import struct
+import fp128
 import usb
 
 const WIDTH        = 3840
@@ -32,9 +34,6 @@ colortable = [
     [106'u8,  52,   3],
 ]
 
-const SCALE      = 8 * 8
-const BYTE_WIDTH = SCALE + 8
-
 proc drawImage(width: int, height: int) =
     for x in 0..<width:
         for y in 0..<height:
@@ -42,9 +41,25 @@ proc drawImage(width: int, height: int) =
             image[y * width * 3 + x * 3 + 1] = (byte)(y / 3)
             image[y * width * 3 + x * 3 + 2] = (byte)(x + y)
 
+proc putPixel(x: int, y: int, val: byte) =
+    image[y * ARRAY_WIDTH * 3 + x * 3 + 0 ] = val and 0xf'u8
+    image[y * ARRAY_WIDTH * 3 + x * 3 + 1 ] = val and 0xf'u8
+    image[y * ARRAY_WIDTH * 3 + x * 3 + 2 ] = val and 0xf'u8
+
 proc clearImage(width: int, height: int) =
     for x in 0..<(width * height * 3):
         image[x] = 0
+
+proc fixedpointnumber(data: ptr ImGuiInputTextCallbackData): int32 {.cdecl.} =
+    let c = (char)data.eventChar
+    if (('0' <= c and '9' >= c) or c == '-' or c == '.'):
+        return 0
+
+    return 1
+
+proc fillWith(buf: ptr array[128, byte], s: string) =
+    for i in 0..<len(s):
+        buf[i] = (byte)s[i]
 
 proc main() =
     doAssert glfwInit()
@@ -72,9 +87,6 @@ proc main() =
     igGetIO().fontGlobalScale = 2.5
     igStyleColorsCherry()
 
-    var somefloat: float32 = 0.0f
-    var counter: int32 = 0
-
     glEnable(GL_TEXTURE_2D)
     glActiveTexture(GL_TEXTURE0)
 
@@ -92,6 +104,26 @@ proc main() =
     var prevWidth:  int = 0
     var prevHeight: int = 0
 
+    var
+        center_x_buf: array[128, byte]
+        center_y_buf: array[128, byte]
+        radius_buf:   array[128, byte]
+    let
+        center_x_str = cast[cstring](addr center_x_buf[0])
+        center_y_str = cast[cstring](addr center_y_buf[0])
+        radius_str   = cast[cstring](addr radius_buf[0])
+
+    (addr center_x_buf).fillWith("-0.75")
+    (addr center_y_buf).fillWith("0")
+    (addr radius_buf).fillWith("1.25")
+
+    var
+        center_x:  UInt128
+        center_y:  UInt128
+        radius:    UInt128
+        corner_x:  UInt128
+        corner_y:  UInt128
+
     while not w.windowShouldClose:
         glfwPollEvents()
 
@@ -101,15 +133,32 @@ proc main() =
 
         # Simple window
         igBegin("FPGA Mandelbrot")
+        igInputText("center x", center_x_str, (uint)len(center_x_buf), CallbackCharFilter, fixedpointnumber)
+        igInputText("center y", center_y_str, (uint)len(center_y_buf), CallbackCharFilter, fixedpointnumber)
+        igInputText("radius",   radius_str,   (uint)len(radius_buf),   CallbackCharFilter, fixedpointnumber)
 
-        igText("This is some useful text.")
+        center_x = cast[UInt128](strToFp128($center_x_str))
+        center_y = cast[UInt128](strToFp128($center_y_str))
+        radius   = cast[UInt128](strToFp128($radius_str))
 
-        igSliderFloat("float", somefloat.addr, 0.0f, 1.0f)
+        # echo "radius: ", radius
 
-        if igButton("Button", ImVec2(x: 0, y: 0)):
-            counter.inc
+        igText("  ")
+
+        if igButton("Calculate", ImVec2(x: 0, y: 0)):
+            let req = send_request(usb[0], 9, 1024, 1024, 0xaa, u128("0xfe0000000000000000"), u128("0xfeafe63d2eb11b6000"), u128("0x55deb9b1a4c35c"))
+            for response in req():
+                var r = @response
+                while len(r) >= 6:
+                    let x = (int)r[1] shl 8 or r[0]
+                    let y = (int)r[3] shl 8 or r[2]
+                    let p = r[4]
+                    putPixel(x, y, p)
+                    r = r[6..high(r)]
+
         igSameLine()
-        igText("counter = %d", counter)
+
+        igText(center_x_str)
 
         igText("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / igGetIO().framerate, igGetIO().framerate)
         igEnd()
