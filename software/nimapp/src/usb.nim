@@ -106,7 +106,7 @@ proc usb_init*(): (ptr LibusbDeviceHandle, ptr LibusbDeviceArray) =
 
 proc send_request*(devHandle: ptr LibusbDeviceHandle, bytewidth: uint8,
                   width: uint16, height: uint16, max_iterations: uint32,
-                  corner_x: UInt128, corner_y: UInt128, step: UInt128): iterator(): array[256, byte] {.thread.} =
+                  corner_x: UInt128, corner_y: UInt128, step: UInt128): iterator(): array[256, byte] =
     let
         command_header     = cast[seq[byte]](pack("HHI", width-1, height-1, max_iterations))
         corner_x_bytes     = corner_x.toBytesLE()[0..<bytewidth]

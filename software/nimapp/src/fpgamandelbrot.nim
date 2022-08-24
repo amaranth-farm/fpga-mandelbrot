@@ -6,13 +6,15 @@ import usb
 
 const WIDTH        = 3840
 const HEIGHT       = 2100
-const RATIO        = 1 #3840 / 2100
+const RATIO        = 3840 / 2100
 
-const ARRAY_WIDTH  = 3000
+const ARRAY_WIDTH  = 6000
 const ARRAY_HEIGHT = (int)(ARRAY_WIDTH / RATIO)
 var
-    image {.align(128).}: array[0..(ARRAY_WIDTH * ARRAY_HEIGHT * 3), byte]
-    colortable:           array[0..15, array[0..2, byte]]
+    image {. align(128), global .}: array[0..(ARRAY_WIDTH * ARRAY_HEIGHT * 3), byte]
+    colortable {. global .}:        array[0..15, array[0..2, byte]]
+    width      {. global .}:        int = WIDTH
+    height     {. global .}:        int = HEIGHT
 
 colortable = [
     [ 66'u8,  30,  15],
@@ -33,17 +35,24 @@ colortable = [
     [106'u8,  52,   3],
 ]
 
-proc drawImage(width: int, height: int) =
+proc drawTestImage(width: int, height: int) =
     for x in 0..<width:
         for y in 0..<height:
             image[y * width * 3 + x * 3 + 0] = (byte)(x / 3)
             image[y * width * 3 + x * 3 + 1] = (byte)(y / 3)
             image[y * width * 3 + x * 3 + 2] = (byte)(x + y)
 
-proc putPixel(x: int, y: int, val: byte) =
-    image[y * ARRAY_WIDTH * 3 + x * 3 + 0 ] = val
-    image[y * ARRAY_WIDTH * 3 + x * 3 + 1 ] = val
-    image[y * ARRAY_WIDTH * 3 + x * 3 + 2 ] = val
+type Pixel = tuple
+    x: uint
+    y: uint
+    p: byte
+
+proc putPixel(p: Pixel, width: uint) =
+    let maxed = (p.p shr 7) == 1
+    let rgb = if maxed: [0'u8, 0, 0] else: colortable[p.p and 0xf]
+    image[p.y * width * 3 + p.x * 3 + 0 ] = rgb[0]
+    image[p.y * width * 3 + p.x * 3 + 1 ] = rgb[1]
+    image[p.y * width * 3 + p.x * 3 + 2 ] = rgb[2]
 
 proc clearImage(width: int, height: int) =
     for x in 0..<(width * height * 3):
@@ -60,26 +69,29 @@ proc fillWith(buf: ptr array[128, byte], s: string) =
     for i in 0..<len(s):
         buf[i] = (byte)s[i]
 
-proc render(v: void) {.thread.} =
-    let req = send_request(usb[0], 9, 2048, 2048, 0xaa, u128("0xfe0000000000000000"), u128("0xfeafe63d2eb11b6000"), u128("0x55deb9b1a4c35c"))
+proc render(v: void): iterator(): Pixel =
+    echo "render width: ", width, " height: ", height
+    let req = send_request(usb[0], 9, (uint16)width, (uint16)height, 0xaa, u128("0xfe0000000000000000"), u128("0xfeafe63d2eb11b6000"), u128("0x55deb9b1a4c35c"))
     var r = newSeq[byte](0)
-    for response in req():
-        r = r & @response
-        while len(r) >= 6:
-            let x = (((uint)r[1]) shl 8) or (uint)r[0]
-            let y = (((uint)r[3]) shl 8) or (uint)r[2]
-            let p = r[4]
-            let s = r[5]
-            if s != 0xa5:
-                echo seq_hex(r[0..<6])
-                echo " ====> unexpected byte: ", s
-                r = r[6..r.high]
-                echo "rest: ", len(r)
-                continue
 
-            #echo $(x, y, p)
-            putPixel((int)x, (int)y, p)
-            r = r[6..r.high]
+    return iterator(): Pixel =
+        for response in req():
+            r = r & @response
+            while len(r) >= 6:
+                let x = (((uint)r[1]) shl 8) or (uint)r[0]
+                let y = (((uint)r[3]) shl 8) or (uint)r[2]
+                let p = r[4]
+                let s = r[5]
+
+                if s != 0xa5:
+                    echo seq_hex(r[0..<6])
+                    echo " ====> unexpected byte: ", s
+                    r = r[1..r.high]
+                    echo "rest: ", len(r)
+                    continue
+
+                yield (x, y, p)
+                r = r[6..r.high]
 
 proc main() =
     doAssert glfwInit()
@@ -118,8 +130,9 @@ proc main() =
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (GLint)GL_LINEAR)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (GLint)GL_LINEAR)
 
-    #    glTexStorage2D(GL_TEXTURE_2D, (GLsizei)1, GL_RGB8, (GLsizei)WIDTH, (GLsizei)HEIGHT)
-    #    glTexSubImage2D(GL_TEXTURE_2D, 1, 0, 0, WIDTH, HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, addr image)
+    # drawing to parts of an image:
+    # glTexStorage2D(GL_TEXTURE_2D, (GLsizei)1, GL_RGB8, (GLsizei)WIDTH, (GLsizei)HEIGHT)
+    # glTexSubImage2D(GL_TEXTURE_2D, 1, 0, 0, WIDTH, HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, addr image)
 
     var prevWidth:  int = 0
     var prevHeight: int = 0
@@ -143,6 +156,7 @@ proc main() =
         radius:    UInt128
         corner_x:  UInt128
         corner_y:  UInt128
+        pixel_iter: iterator(): Pixel
 
     while not w.windowShouldClose:
         glfwPollEvents()
@@ -161,14 +175,16 @@ proc main() =
         center_y = cast[UInt128](strToFp128($center_y_str))
         radius   = cast[UInt128](strToFp128($radius_str))
 
-        # echo "radius: ", radius
-
         igText("  ")
 
         if igButton("Calculate", ImVec2(x: 0, y: 0)):
-            render()
-            #var t: Thread[void]
-            #createThread(t, render)
+            pixel_iter = render()
+
+        if pixel_iter != nil and not finished(pixel_iter):
+            for _ in 1..(10 * width):
+                if finished(pixel_iter):
+                    break
+                putPixel(pixel_iter(), (uint)width)
 
         igSameLine()
 
@@ -183,27 +199,27 @@ proc main() =
         const inWindow = true
         if inWindow:
             igBegin("Fractal", nil, ImGuiWindowFlags.NoBringToFrontOnFocus)
-            var width  = ((int)igGetWindowContentRegionWidth()) and not 0x3
-            var height = ((int)igGetWindowHeight() - 50) and not 0x3
+            width  = ((int)igGetWindowContentRegionWidth()) and not 0x3
+            height = ((int)igGetWindowHeight() - 50) and not 0x3
+
+            width  = min(width,  ARRAY_WIDTH)
+            height = min(height, ARRAY_HEIGHT)
 
             if width != prevWidth or height != prevHeight:
-                #clearImage(WIDTH, HEIGHT)
-                #drawImage(width, height)
+                clearImage(WIDTH, HEIGHT)
                 prevWidth  = width
                 prevHeight = height
-
-            # TMP TMP TMP
-            width = ARRAY_WIDTH
-            height = ARRAY_HEIGHT
 
             glTexImage2D(GL_TEXTURE_2D, (GLint)0, (GLint)GL_RGB, (GLsizei)width, (GLsizei)height, (GLint)0, GL_RGB, GL_UNSIGNED_BYTE, addr image)
             igImage(cast[ImTextureID](tof), ImVec2(x: (float32)width, y: (float32)height))
             igEnd()
         else:
+            width = WIDTH
+            height = HEIGHT
             glActiveTexture(GL_TEXTURE0)
-            glTexImage2D(GL_TEXTURE_2D, (GLint)0, (GLint)GL_RGB, (GLsizei)WIDTH, (GLsizei)HEIGHT, (GLint)0, GL_RGB, GL_UNSIGNED_BYTE, addr image)
+            glTexImage2D(GL_TEXTURE_2D, (GLint)0, (GLint)GL_RGB, (GLsizei)width, (GLsizei)height, (GLint)0, GL_RGB, GL_UNSIGNED_BYTE, addr image)
             var draw = igGetBackgroundDrawList()
-            draw.addImage(cast[ImTextureID](tof), ImVec2(x: 0, y: 0), ImVec2(x: WIDTH, y: HEIGHT))
+            draw.addImage(cast[ImTextureID](tof), ImVec2(x: 0, y: 0), ImVec2(x: (float32)width, y: (float32)height))
 
         igRender()
 
