@@ -8,6 +8,8 @@ const WIDTH        = 3840
 const HEIGHT       = 2100
 const RATIO        = 3840 / 2100
 
+const STRBUF_LEN  = 1024
+
 const ARRAY_WIDTH  = 6000
 const ARRAY_HEIGHT = (int)(ARRAY_WIDTH / RATIO)
 var
@@ -65,9 +67,10 @@ proc fixedpointnumber(data: ptr ImGuiInputTextCallbackData): int32 {.cdecl.} =
 
     return 1
 
-proc fillWith(buf: ptr array[128, byte], s: string) =
+proc fillWith(buf: ptr array[STRBUF_LEN, byte], s: string) =
     for i in 0..<len(s):
         buf[i] = (byte)s[i]
+    buf[len(s)] = 0
 
 proc render(corner_x: Int128, corner_y: Int128, max_iterations: uint32, step: Int128): iterator(): Pixel =
     echo "render width: ", width, " height: ", height
@@ -138,9 +141,9 @@ proc main() =
     var prevHeight: int = 0
 
     var
-        center_x_buf: array[128, byte]
-        center_y_buf: array[128, byte]
-        radius_buf:   array[128, byte]
+        center_x_buf: array[STRBUF_LEN, byte]
+        center_y_buf: array[STRBUF_LEN, byte]
+        radius_buf:   array[STRBUF_LEN, byte]
     let
         center_x_str = cast[cstring](addr center_x_buf[0])
         center_y_str = cast[cstring](addr center_y_buf[0])
