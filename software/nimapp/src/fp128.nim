@@ -2,8 +2,8 @@ import std/algorithm
 import pkg/nint128
 import strutils
 
-const SCALE      = 8 * 8
-const BYTE_WIDTH = SCALE shr 3 + 8
+const SCALE*      = 8 * 8
+const BYTE_WIDTH* = SCALE shr 3 + 8
 
 proc strToFp128*(s: string): Int128 =
     var
@@ -26,14 +26,14 @@ proc strToFp128*(s: string): Int128 =
 
     let fraction =
         if len(frac) > 0:
-            var exponent = u128(1)
+            var exponent = i128(1)
             for i in 0..<len(frac):
-                exponent *= u128(10)
-            (frac.parseUInt128() shl SCALE) div exponent
+                exponent *= i128(10)
+            (frac.parseInt128() shl SCALE) div exponent
         else:
-            u128(0)
+            i128(0)
 
-    let absresult = cast[Int128](whole.parseUInt128 shl SCALE + fraction)
+    let absresult = whole.parseInt128 shl SCALE + fraction
     if negative: -absresult: else: absresult
 
 proc fp128ToStr*(n: Int128): string =
@@ -75,3 +75,6 @@ proc test() =
     echo fp128ToStr(strToFp128("1"))
     echo fp128ToStr(strToFp128("1.25"))
     echo fp128ToStr(strToFp128("1.32"))
+
+# test()
+# quit()
