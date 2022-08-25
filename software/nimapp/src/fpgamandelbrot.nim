@@ -8,7 +8,7 @@ const WIDTH        = 3840
 const HEIGHT       = 2100
 const RATIO        = 3840 / 2100
 
-const STRBUF_LEN  = 1024
+const STRBUF_LEN  = 256
 
 const ARRAY_WIDTH  = 6000
 const ARRAY_HEIGHT = (int)(ARRAY_WIDTH / RATIO)
