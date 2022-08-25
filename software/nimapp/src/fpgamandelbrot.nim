@@ -178,6 +178,16 @@ proc main() =
         center_y = -strToFp128($center_y_str)
         radius   = strToFp128($radius_str)
 
+        let wheel = igGetIO().mouseWheel
+        if (wheel > 0):
+            radius = (radius shr (SCALE div 2)) * (strToFp128("0.5") shr (SCALE div 2))
+            echo "more: ", $radius
+            (addr radius_buf).fillWith(fp128ToStr(radius))
+        if (wheel < 0):
+            radius = (radius shr (SCALE div 2)) * (strToFp128("2") shr (SCALE div 2))
+            echo "less: ", $radius
+            (addr radius_buf).fillWith(fp128ToStr(radius))
+
         igText("  ")
 
         if igButton("Calculate", ImVec2(x: 0, y: 0)):
