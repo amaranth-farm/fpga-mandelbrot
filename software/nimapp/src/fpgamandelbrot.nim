@@ -198,7 +198,7 @@ proc main() =
                 corner_x = center_x - (i128(width) shr 1)  * step
                 corner_y = center_y - (i128(height) shr 1) * step
 
-            pixel_iter = render(corner_x, corner_y, 256, step)
+            pixel_iter = render(corner_x, corner_y, (uint32)max_iterations, step)
 
         if pixel_iter != nil and not finished(pixel_iter):
             var pixel_y: uint
