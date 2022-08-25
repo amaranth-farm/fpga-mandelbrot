@@ -223,8 +223,22 @@ proc main() =
         const inWindow = true
         if inWindow:
             igBegin("Fractal", nil, ImGuiWindowFlags.NoBringToFrontOnFocus)
+            var win_pos, win_min, win_max: ImVec2
+            igGetWindowPosNonUDT(addr win_pos)
+            igGetWindowContentRegionMinNonUDT(addr win_min)
+            igGetWindowContentRegionMaxNonUDT(addr win_max)
+            let mouse = igGetIO().mousePos
+
+            let
+                min_x = win_pos.x + win_min.x
+                min_y = win_pos.y + win_min.y
+                max_x = min_x + (float32)width
+                max_y = min_y + (float32)height
+                mouse_x = mouse.x
+                mouse_y = mouse.y
+
             width  = ((int)igGetWindowContentRegionWidth()) and not 0x3
-            height = ((int)igGetWindowHeight() - 50) and not 0x3
+            height = ((int)igGetWindowHeight() - 50) and not 0x3 - 50
 
             width  = min(width,  ARRAY_WIDTH)
             height = min(height, ARRAY_HEIGHT)
@@ -236,6 +250,12 @@ proc main() =
 
             glTexImage2D(GL_TEXTURE_2D, (GLint)0, (GLint)GL_RGB, (GLsizei)width, (GLsizei)height, (GLint)0, GL_RGB, GL_UNSIGNED_BYTE, addr image)
             igImage(cast[ImTextureID](tof), ImVec2(x: (float32)width, y: (float32)height))
+            let
+                draw = igGetWindowDrawList()
+
+            draw.addLine(ImVec2(x: mouse_x, y: min_y),   ImVec2(x: mouse_x, y: max_y),   0xaaffffff'u32)
+            draw.addLine(ImVec2(x: min_x,   y: mouse_y), ImVec2(x: max_x,   y: mouse_y), 0xaaffffff'u32)
+
             igEnd()
         else:
             width = WIDTH
