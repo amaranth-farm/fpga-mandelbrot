@@ -172,7 +172,7 @@ proc main() =
         igSliderInt("iterations", addr max_iterations, 10'i32, 10000000'i32, flags=ImGuiSliderFlags.Logarithmic)
 
         center_x = strToFp128($center_x_str)
-        center_y = strToFp128($center_y_str)
+        center_y = -strToFp128($center_y_str)
         radius   = strToFp128($radius_str)
 
         igText("  ")
