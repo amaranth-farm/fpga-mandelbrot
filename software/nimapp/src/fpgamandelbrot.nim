@@ -276,6 +276,9 @@ proc main() =
             draw.addText(ImVec2(x: mouse.x, y: min_y), coordinates_color, (cstring)(" y: " & mouse_y_str))
 
             if igIsItemHovered() and igIsMouseDown(ImGuiMouseButton.Left):
+                # TODO: Why does that behave totally crazy (accumulates x values)
+                # (addr center_x_buf).fillWith(mouse_x_str)
+                # (addr center_y_buf).fillWith(mouse_y_str)
                 echo mouse_x_str
                 echo mouse_y_str
 
