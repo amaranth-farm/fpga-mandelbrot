@@ -4,9 +4,11 @@ import strutils
 
 const SCALE*           = 8 * 8
 const BYTE_WIDTH*      = SCALE shr 3 + 8
-const MAX_FRAC_DIGITS* = 30
+const MAX_FRAC_DIGITS* = 20
 
 proc strToFp128*(s: string): Int128 =
+    if s == "": return i128(0)
+
     var
         abs:   string
         whole: string
@@ -25,10 +27,13 @@ proc strToFp128*(s: string): Int128 =
         else:
             raise newException(OSError, "could not parse number")
 
+    frac = frac[0 ..<  min(19, len(frac))]
+    echo "frac: " & frac
+
     let fraction =
         if len(frac) > 0:
             var exponent = i128(1)
-            for i in 0..<len(frac):
+            for i in 0 ..< len(frac):
                 exponent *= i128(10)
             (frac.parseInt128() shl SCALE) div exponent
         else:
@@ -82,8 +87,10 @@ proc test() =
     echo fp128ToStr(strToFp128("1"))
     echo fp128ToStr(strToFp128("1.25"))
     echo fp128ToStr(strToFp128("1.32"))
+    echo fp128ToStr(strToFp128("1.3333333333333333333"))
     echo fp128ToStr(strToFp128("0.0000000000000000001"))
     echo fp128ToStr(i128(1))
+    echo fp128ToStr(strToFp128(""))
 
 #test()
 #quit()
