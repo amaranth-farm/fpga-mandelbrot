@@ -162,7 +162,6 @@ proc main() =
         radius:         Int128
         pixel_iter:     iterator(): Pixel
         max_iterations: int32 = 256
-        debounce              = false
 
     while not w.windowShouldClose:
         glfwPollEvents()
@@ -178,9 +177,12 @@ proc main() =
         igInputText("radius",   radius_str,   64,   CallbackCharFilter, fixedpointnumber)
         igSliderInt("iterations", addr max_iterations, 10'i32, 0x7fffff'i32, flags=ImGuiSliderFlags.Logarithmic)
 
-        center_x = strToFp128($center_x_str)
-        center_y = -strToFp128($center_y_str)
-        radius   = strToFp128($radius_str)
+        try :
+            center_x = strToFp128($center_x_str)
+            center_y = -strToFp128($center_y_str)
+            radius   = strToFp128($radius_str)
+        except:
+            set_to_defaults()
 
         let
             radius_pixels = i128(min(width, height) shr 1)
@@ -273,12 +275,10 @@ proc main() =
             draw.addText(ImVec2(x: min_x, y: mouse.y), coordinates_color, (cstring)(" x: " & mouse_x_str))
             draw.addText(ImVec2(x: mouse.x, y: min_y), coordinates_color, (cstring)(" y: " & mouse_y_str))
 
-            if igIsItemHovered() and igIsMouseDown(ImGuiMouseButton.Middle) and not debounce:
-                (addr center_x_buf).fillWith(mouse_x_str)
-                (addr center_y_buf).fillWith(mouse_y_str)
-                debounce = true
-            else:
-                debounce = false
+            if igIsItemHovered() and igIsMouseDown(ImGuiMouseButton.Left):
+                echo mouse_x_str
+                echo mouse_y_str
+
             igEnd()
         else:
             width = WIDTH
