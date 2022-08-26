@@ -266,21 +266,15 @@ proc main() =
                 prevHeight = height
 
             glTexImage2D(GL_TEXTURE_2D, (GLint)0, (GLint)GL_RGB, (GLsizei)width, (GLsizei)height, (GLint)0, GL_RGB, GL_UNSIGNED_BYTE, addr image)
-            igImageButton(cast[ImTextureID](tof), ImVec2(x: (float32)width, y: (float32)height))
-            let
-                draw = igGetWindowDrawList()
+            if igImageButton(cast[ImTextureID](tof), ImVec2(x: (float32)width, y: (float32)height)):
+                (addr center_x_buf).fillWith(mouse_x_str)
+                (addr center_y_buf).fillWith(mouse_y_str)
 
+            let draw = igGetWindowDrawList()
             draw.addLine(ImVec2(x: mouse.x, y: min_y),   ImVec2(x: mouse.x, y: max_y),   crosshairs_color)
             draw.addLine(ImVec2(x: min_x,   y: mouse.y), ImVec2(x: max_x,   y: mouse.y), crosshairs_color)
             draw.addText(ImVec2(x: min_x, y: mouse.y), coordinates_color, (cstring)(" x: " & mouse_x_str))
             draw.addText(ImVec2(x: mouse.x, y: min_y), coordinates_color, (cstring)(" y: " & mouse_y_str))
-
-            if igIsItemHovered() and igIsMouseDown(ImGuiMouseButton.Left):
-                # TODO: Why does that behave totally crazy (accumulates x values)
-                # (addr center_x_buf).fillWith(mouse_x_str)
-                # (addr center_y_buf).fillWith(mouse_y_str)
-                echo mouse_x_str
-                echo mouse_y_str
 
             igEnd()
         else:
