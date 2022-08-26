@@ -163,6 +163,13 @@ proc main() =
         pixel_iter:     iterator(): Pixel
         max_iterations: int32 = 256
 
+    let read_textfields = proc() =
+        center_x = strToFp128($center_x_str)
+        center_y = -strToFp128($center_y_str)
+        radius   = strToFp128($radius_str)
+
+    read_textfields()
+
     while not w.windowShouldClose:
         glfwPollEvents()
 
@@ -176,13 +183,6 @@ proc main() =
         igInputText("center y", center_y_str, 64, CallbackCharFilter, fixedpointnumber)
         igInputText("radius",   radius_str,   64,   CallbackCharFilter, fixedpointnumber)
         igSliderInt("iterations", addr max_iterations, 10'i32, 0x7fffff'i32, flags=ImGuiSliderFlags.Logarithmic)
-
-        try :
-            center_x = strToFp128($center_x_str)
-            center_y = -strToFp128($center_y_str)
-            radius   = strToFp128($radius_str)
-        except:
-            set_to_defaults()
 
         let
             radius_pixels = i128(min(width, height) shr 1)
@@ -202,13 +202,20 @@ proc main() =
 
         if igButton("Calculate", ImVec2(x: 0, y: 0)):
             clearImage(width, height)
+
+            try :
+                read_textfields()
+            except:
+                set_to_defaults()
+
             pixel_iter = render(corner_x, corner_y, (uint32)max_iterations, step)
 
         igSameLine()
         if igButton("Reset", ImVec2(x: 0, y: 0)):
             clearImage(width, height)
             set_to_defaults()
-
+            read_textfields()
+            pixel_iter = render(corner_x, corner_y, (uint32)max_iterations, step)
 
         if pixel_iter != nil and not finished(pixel_iter):
             var pixel_y: uint
@@ -259,7 +266,6 @@ proc main() =
                 crosshairs_color  = 0xffffffff'u32
                 coordinates_color = 0xffffffff'u32
 
-
             if width != prevWidth or height != prevHeight:
                 clearImage(WIDTH, HEIGHT)
                 prevWidth  = width
@@ -267,6 +273,18 @@ proc main() =
 
             glTexImage2D(GL_TEXTURE_2D, (GLint)0, (GLint)GL_RGB, (GLsizei)width, (GLsizei)height, (GLint)0, GL_RGB, GL_UNSIGNED_BYTE, addr image)
             if igImageButton(cast[ImTextureID](tof), ImVec2(x: (float32)width, y: (float32)height)):
+                when true:
+                    echo "min_x: ", min_x
+                    echo "min_y: ", min_y
+                    echo "max_x: ", max_x
+                    echo "max_y: ", max_y
+                    echo "mouse_x_rel: ", mouse_x_rel
+                    echo "mouse_y_rel: ", mouse_y_rel
+                    echo "mouse_x_fp: ", mouse_x_fp
+                    echo "mouse_y_fp: ", mouse_y_fp
+                    echo "mouse_x_str: ", mouse_x_str
+                    echo "mouse_y_str: ", mouse_y_str
+
                 (addr center_x_buf).fillWith(mouse_x_str)
                 (addr center_y_buf).fillWith(mouse_y_str)
 
@@ -274,7 +292,7 @@ proc main() =
             draw.addLine(ImVec2(x: mouse.x, y: min_y),   ImVec2(x: mouse.x, y: max_y),   crosshairs_color)
             draw.addLine(ImVec2(x: min_x,   y: mouse.y), ImVec2(x: max_x,   y: mouse.y), crosshairs_color)
             draw.addText(ImVec2(x: min_x, y: mouse.y), coordinates_color, (cstring)(" x: " & mouse_x_str))
-            draw.addText(ImVec2(x: mouse.x, y: min_y), coordinates_color, (cstring)(" y: " & mouse_y_str))
+            draw.addText(ImVec2(x: mouse.x, y: max_y - 30.0), coordinates_color, (cstring)(" y: " & mouse_y_str))
 
             igEnd()
         else:
