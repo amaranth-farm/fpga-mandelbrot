@@ -254,8 +254,8 @@ proc main() =
                 mouse_y_rel = max(0, mouse.y - min_y)
                 mouse_x_fp = corner_x + fp_mul(strToFp128($mouse_x_rel), step)
                 mouse_y_fp = corner_y + fp_mul(height.from_int() - strToFp128($mouse_y_rel), step)
-                mouse_x_str = fp128ToStr(mouse_x_fp)[0..25]
-                mouse_y_str = fp128ToStr(mouse_y_fp)[0..25]
+                mouse_x_str = fp128ToStr(mouse_x_fp)
+                mouse_y_str = fp128ToStr(mouse_y_fp)
                 crosshairs_color  = 0xffffffff'u32
                 coordinates_color = 0xffffffff'u32
 
