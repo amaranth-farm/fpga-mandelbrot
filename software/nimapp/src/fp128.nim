@@ -2,8 +2,9 @@ import std/algorithm
 import pkg/nint128
 import strutils
 
-const SCALE*      = 8 * 8
-const BYTE_WIDTH* = SCALE shr 3 + 8
+const SCALE*           = 8 * 8
+const BYTE_WIDTH*      = SCALE shr 3 + 8
+const MAX_FRAC_DIGITS* = 30
 
 proc strToFp128*(s: string): Int128 =
     var
@@ -50,16 +51,22 @@ proc fp128ToStr*(n: Int128): string =
     # echo "      " & "              998877665544332211"
 
     var str: string = ""
+    var no_digits: int = 0
     while frac > i128(0):
         frac *= i128(10)
         let digit = $cast[byte]((frac shr SCALE) and i128(0xf))
         str = str & digit
         frac = frac and frac_mask
+        inc(no_digits)
+        if no_digits >= MAX_FRAC_DIGITS: break
 
     if len(str) > 0:
         sign & whole & '.' & str
     else:
         sign & whole
+
+proc from_int*(x: int): Int128             = i128(x) shl SCALE
+proc fp_mul*(x: Int128, y: Int128): Int128 = (x shr (SCALE div 2)) * (y shr (SCALE div 2))
 
 proc test() =
     let negpi = cast[UInt128](strToFp128("-3.14159265359"))
@@ -75,6 +82,8 @@ proc test() =
     echo fp128ToStr(strToFp128("1"))
     echo fp128ToStr(strToFp128("1.25"))
     echo fp128ToStr(strToFp128("1.32"))
+    echo fp128ToStr(strToFp128("0.0000000000000000001"))
+    echo fp128ToStr(i128(1))
 
-# test()
-# quit()
+#test()
+#quit()

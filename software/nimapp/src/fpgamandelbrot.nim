@@ -8,7 +8,7 @@ const WIDTH        = 3840
 const HEIGHT       = 2100
 const RATIO        = 3840 / 2100
 
-const STRBUF_LEN  = 256
+const STRBUF_LEN  = 64
 
 const ARRAY_WIDTH  = 6000
 const ARRAY_HEIGHT = (int)(ARRAY_WIDTH / RATIO)
@@ -149,9 +149,12 @@ proc main() =
         center_y_str = cast[cstring](addr center_y_buf[0])
         radius_str   = cast[cstring](addr radius_buf[0])
 
-    (addr center_x_buf).fillWith("-0.75")
-    (addr center_y_buf).fillWith("0")
-    (addr radius_buf).fillWith("1.25")
+    let set_to_defaults = proc() =
+        (addr center_x_buf).fillWith("-0.75")
+        (addr center_y_buf).fillWith("0")
+        (addr radius_buf).fillWith("1.25")
+
+    set_to_defaults()
 
     var
         center_x:       Int128
@@ -159,6 +162,7 @@ proc main() =
         radius:         Int128
         pixel_iter:     iterator(): Pixel
         max_iterations: int32 = 256
+        debounce              = false
 
     while not w.windowShouldClose:
         glfwPollEvents()
@@ -169,36 +173,40 @@ proc main() =
 
         # Simple window
         igBegin("FPGA Mandelbrot")
-        igInputText("center x", center_x_str, (uint)len(center_x_buf), CallbackCharFilter, fixedpointnumber)
-        igInputText("center y", center_y_str, (uint)len(center_y_buf), CallbackCharFilter, fixedpointnumber)
-        igInputText("radius",   radius_str,   (uint)len(radius_buf),   CallbackCharFilter, fixedpointnumber)
+        igInputText("center x", center_x_str, 64, CallbackCharFilter, fixedpointnumber)
+        igInputText("center y", center_y_str, 64, CallbackCharFilter, fixedpointnumber)
+        igInputText("radius",   radius_str,   64,   CallbackCharFilter, fixedpointnumber)
         igSliderInt("iterations", addr max_iterations, 10'i32, 0x7fffff'i32, flags=ImGuiSliderFlags.Logarithmic)
 
         center_x = strToFp128($center_x_str)
         center_y = -strToFp128($center_y_str)
         radius   = strToFp128($radius_str)
 
+        let
+            radius_pixels = i128(min(width, height) shr 1)
+            step = radius div radius_pixels
+            corner_x = center_x - (i128(width) shr 1)  * step
+            corner_y = center_y - (i128(height) shr 1) * step
+
         let wheel = igGetIO().mouseWheel
         if (wheel > 0):
             radius = (radius shr (SCALE div 2)) * (strToFp128("0.5") shr (SCALE div 2))
-            echo "more: ", $radius
             (addr radius_buf).fillWith(fp128ToStr(radius))
         if (wheel < 0):
             radius = (radius shr (SCALE div 2)) * (strToFp128("2") shr (SCALE div 2))
-            echo "less: ", $radius
             (addr radius_buf).fillWith(fp128ToStr(radius))
 
         igText("  ")
 
         if igButton("Calculate", ImVec2(x: 0, y: 0)):
             clearImage(width, height)
-            let
-                radius_pixels = i128(min(width, height) shr 1)
-                step = radius div radius_pixels
-                corner_x = center_x - (i128(width) shr 1)  * step
-                corner_y = center_y - (i128(height) shr 1) * step
-
             pixel_iter = render(corner_x, corner_y, (uint32)max_iterations, step)
+
+        igSameLine()
+        if igButton("Reset", ImVec2(x: 0, y: 0)):
+            clearImage(width, height)
+            set_to_defaults()
+
 
         if pixel_iter != nil and not finished(pixel_iter):
             var pixel_y: uint
@@ -229,19 +237,26 @@ proc main() =
             igGetWindowContentRegionMaxNonUDT(addr win_max)
             let mouse = igGetIO().mousePos
 
+            width  = ((int)igGetWindowContentRegionWidth()) and not 0x3
+            height = ((int)igGetWindowHeight() - 50) and not 0x3
+
+            width  = min(width,  ARRAY_WIDTH)
+            height = min(height, ARRAY_HEIGHT)
+
             let
                 min_x = win_pos.x + win_min.x
                 min_y = win_pos.y + win_min.y
                 max_x = min_x + (float32)width
                 max_y = min_y + (float32)height
-                mouse_x = mouse.x
-                mouse_y = mouse.y
+                mouse_x_rel = max(0, mouse.x - min_x)
+                mouse_y_rel = max(0, mouse.y - min_y)
+                mouse_x_fp = corner_x + fp_mul(strToFp128($mouse_x_rel), step)
+                mouse_y_fp = corner_y + fp_mul(height.from_int() - strToFp128($mouse_y_rel), step)
+                mouse_x_str = fp128ToStr(mouse_x_fp)[0..25]
+                mouse_y_str = fp128ToStr(mouse_y_fp)[0..25]
+                crosshairs_color  = 0xffffffff'u32
+                coordinates_color = 0xffffffff'u32
 
-            width  = ((int)igGetWindowContentRegionWidth()) and not 0x3
-            height = ((int)igGetWindowHeight() - 50) and not 0x3 - 50
-
-            width  = min(width,  ARRAY_WIDTH)
-            height = min(height, ARRAY_HEIGHT)
 
             if width != prevWidth or height != prevHeight:
                 clearImage(WIDTH, HEIGHT)
@@ -249,13 +264,21 @@ proc main() =
                 prevHeight = height
 
             glTexImage2D(GL_TEXTURE_2D, (GLint)0, (GLint)GL_RGB, (GLsizei)width, (GLsizei)height, (GLint)0, GL_RGB, GL_UNSIGNED_BYTE, addr image)
-            igImage(cast[ImTextureID](tof), ImVec2(x: (float32)width, y: (float32)height))
+            igImageButton(cast[ImTextureID](tof), ImVec2(x: (float32)width, y: (float32)height))
             let
                 draw = igGetWindowDrawList()
 
-            draw.addLine(ImVec2(x: mouse_x, y: min_y),   ImVec2(x: mouse_x, y: max_y),   0xaaffffff'u32)
-            draw.addLine(ImVec2(x: min_x,   y: mouse_y), ImVec2(x: max_x,   y: mouse_y), 0xaaffffff'u32)
+            draw.addLine(ImVec2(x: mouse.x, y: min_y),   ImVec2(x: mouse.x, y: max_y),   crosshairs_color)
+            draw.addLine(ImVec2(x: min_x,   y: mouse.y), ImVec2(x: max_x,   y: mouse.y), crosshairs_color)
+            draw.addText(ImVec2(x: min_x, y: mouse.y), coordinates_color, (cstring)(" x: " & mouse_x_str))
+            draw.addText(ImVec2(x: mouse.x, y: min_y), coordinates_color, (cstring)(" y: " & mouse_y_str))
 
+            if igIsItemHovered() and igIsMouseDown(ImGuiMouseButton.Middle) and not debounce:
+                (addr center_x_buf).fillWith(mouse_x_str)
+                (addr center_y_buf).fillWith(mouse_y_str)
+                debounce = true
+            else:
+                debounce = false
             igEnd()
         else:
             width = WIDTH
