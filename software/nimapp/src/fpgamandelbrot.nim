@@ -52,9 +52,9 @@ type Pixel = tuple
 proc putPixel(p: Pixel, width: uint) =
     let maxed = (p.p shr 7) == 1
     let rgb = if maxed: [0'u8, 0, 0] else: colortable[p.p and 0xf]
-    image[p.y * width * 3 + p.x * 3 + 0 ] = rgb[0]
-    image[p.y * width * 3 + p.x * 3 + 1 ] = rgb[1]
-    image[p.y * width * 3 + p.x * 3 + 2 ] = rgb[2]
+    image[p.y * width * 3 + p.x * 3 + 0] = rgb[0]
+    image[p.y * width * 3 + p.x * 3 + 1] = rgb[1]
+    image[p.y * width * 3 + p.x * 3 + 2] = rgb[2]
 
 proc clearImage(width: int, height: int) =
     for x in 0..<(width * height * 3):
@@ -165,7 +165,7 @@ proc main() =
 
     let read_textfields = proc() =
         center_x = strToFp128($center_x_str)
-        center_y = -strToFp128($center_y_str)
+        center_y = strToFp128($center_y_str)
         radius   = strToFp128($radius_str)
 
     read_textfields()
@@ -184,18 +184,20 @@ proc main() =
         igInputText("radius",   radius_str,   64,   CallbackCharFilter, fixedpointnumber)
         igSliderInt("iterations", addr max_iterations, 10'i32, 0x7fffff'i32, flags=ImGuiSliderFlags.Logarithmic)
 
-        let
-            radius_pixels = i128(min(width, height) shr 1)
-            step = radius div radius_pixels
-            corner_x = center_x - (i128(width) shr 1)  * step
-            corner_y = center_y - (i128(height) shr 1) * step
+        var calculate_fpga_parameters = proc(): tuple[corner_x: Int128, corner_y: Int128, step: Int128] =
+            let
+                radius_pixels = i128(min(width, height) shr 1)
+                step = radius div radius_pixels
+                corner_x = center_x - (i128(width)  shr 1) * step
+                corner_y = center_y - (i128(height) shr 1) * step
+            return (corner_x, corner_y, step)
 
         let wheel = igGetIO().mouseWheel
         if (wheel > 0):
-            radius = (radius shr (SCALE div 2)) * (strToFp128("0.5") shr (SCALE div 2))
+            radius = fp_mul(radius, strToFp128("0.5"))
             (addr radius_buf).fillWith(fp128ToStr(radius))
         if (wheel < 0):
-            radius = (radius shr (SCALE div 2)) * (strToFp128("2") shr (SCALE div 2))
+            radius = fp_mul(radius, strToFp128("2"))
             (addr radius_buf).fillWith(fp128ToStr(radius))
 
         igText("  ")
@@ -208,14 +210,16 @@ proc main() =
             except:
                 set_to_defaults()
 
-            pixel_iter = render(corner_x, corner_y, (uint32)max_iterations, step)
+            let p =calculate_fpga_parameters()
+            pixel_iter = render(p.corner_x, p.corner_y, (uint32)max_iterations, p.step)
 
         igSameLine()
         if igButton("Reset", ImVec2(x: 0, y: 0)):
             clearImage(width, height)
             set_to_defaults()
             read_textfields()
-            pixel_iter = render(corner_x, corner_y, (uint32)max_iterations, step)
+            let p =calculate_fpga_parameters()
+            pixel_iter = render(p.corner_x, p.corner_y, (uint32)max_iterations, p.step)
 
         if pixel_iter != nil and not finished(pixel_iter):
             var pixel_y: uint
@@ -253,14 +257,15 @@ proc main() =
             height = min(height, ARRAY_HEIGHT)
 
             let
+                params = calculate_fpga_parameters()
                 min_x = win_pos.x + win_min.x
                 min_y = win_pos.y + win_min.y
                 max_x = min_x + (float32)width
                 max_y = min_y + (float32)height
                 mouse_x_rel = max(0, mouse.x - min_x)
                 mouse_y_rel = max(0, mouse.y - min_y)
-                mouse_x_fp = corner_x + fp_mul(strToFp128($mouse_x_rel), step)
-                mouse_y_fp = corner_y + fp_mul(height.from_int() - strToFp128($mouse_y_rel), step)
+                mouse_x_fp = params.corner_x + fp_mul(strToFp128($mouse_x_rel), params.step)
+                mouse_y_fp = params.corner_y + fp_mul(height.from_int() - strToFp128($mouse_y_rel), params.step)
                 mouse_x_str = fp128ToStr(mouse_x_fp)
                 mouse_y_str = fp128ToStr(mouse_y_fp)
                 crosshairs_color  = 0xffffffff'u32
