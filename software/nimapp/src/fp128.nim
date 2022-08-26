@@ -27,8 +27,8 @@ proc strToFp128*(s: string): Int128 =
         else:
             raise newException(OSError, "could not parse number")
 
+    # cut off garbage digits
     frac = frac[0 ..<  min(19, len(frac))]
-    echo "frac: " & frac
 
     let fraction =
         if len(frac) > 0:
