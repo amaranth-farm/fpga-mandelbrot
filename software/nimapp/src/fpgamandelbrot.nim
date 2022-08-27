@@ -303,8 +303,8 @@ proc main() =
             let draw = igGetWindowDrawList()
             draw.addLine(ImVec2(x: mouse.x, y: min_y),   ImVec2(x: mouse.x, y: max_y),   crosshairs_color)
             draw.addLine(ImVec2(x: min_x,   y: mouse.y), ImVec2(x: max_x,   y: mouse.y), crosshairs_color)
-            draw.addText(ImVec2(x: min_x, y: mouse.y), coordinates_color, (cstring)(" x: " & mouse_x_str))
-            draw.addText(ImVec2(x: mouse.x, y: max_y - 30.0), coordinates_color, (cstring)(" y: " & mouse_y_str))
+            draw.addText(ImVec2(x: min_x, y: mouse.y), coordinates_color, (cstring)(" y: " & mouse_y_str))
+            draw.addText(ImVec2(x: mouse.x, y: max_y - 30.0), coordinates_color, (cstring)(" x: " & mouse_x_str))
 
             igEnd()
         else:
