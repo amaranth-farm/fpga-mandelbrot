@@ -189,7 +189,7 @@ proc main() =
                 radius_pixels = i128(min(width, height) shr 1)
                 step = radius div radius_pixels
                 corner_x = center_x - (i128(width)  shr 1) * step
-                corner_y = center_y - (i128(height) shr 1) * step
+                corner_y = -(center_y + (i128(height) shr 1) * step)
             return (corner_x, corner_y, step)
 
         let wheel = igGetIO().mouseWheel
@@ -234,7 +234,7 @@ proc main() =
                 if finished(pixel_iter):
                     break
                 let pixel = pixel_iter()
-                putPixel(pixel, (uint)width)
+                putPixel((pixel.x, ((uint)height)-pixel.y, pixel.p), (uint)width)
                 pixel_y = pixel.y
 
             igText("  ")
