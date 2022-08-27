@@ -221,6 +221,13 @@ proc main() =
             let p =calculate_fpga_parameters()
             pixel_iter = render(p.corner_x, p.corner_y, (uint32)max_iterations, p.step)
 
+        igSameLine()
+
+        if igButton("Maximize", ImVec2(x:0, y:0)):
+            var display_size = igGetIO().displaySize
+            igSetWindowSize("Fractal", display_size)
+            igSetWindowPos("Fractal", ImVec2(x: 0, y: 0))
+
         if pixel_iter != nil and not finished(pixel_iter):
             var pixel_y: uint
             for _ in 1..(10 * width):
