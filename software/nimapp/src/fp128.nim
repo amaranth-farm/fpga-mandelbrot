@@ -67,7 +67,7 @@ proc strToFp128*(s: string): Int128 =
             for i in 0 ..< len(frac):
                 exponent *= i128(10)
             # we shift in two steps to avoid shaving off the MSBs
-            ((frac.parseInt128() shl (SCALE div 2)) div exponent) shl (SCALE div 2)
+            ((frac.parseInt128() shl (SCALE - 2)) div exponent) shl 2
         else:
             i128(0)
 
@@ -75,7 +75,9 @@ proc strToFp128*(s: string): Int128 =
     if negative: -absresult: else: absresult
 
 proc test() =
-    let negpi = cast[UInt128](strToFp128("-3.14159265359"))
+    let
+        negpi_str = "-3.1415926535897932384"
+        negpi = cast[UInt128](strToFp128(negpi_str))
     echo negpi.toHex()
     echo cast[UInt128](strToFp128("-1")).toHex()
     echo cast[UInt128](strToFp128("1")).toHex()
@@ -83,16 +85,20 @@ proc test() =
     echo cast[UInt128](strToFp128("1.32")).toHex()
     echo "              998877665544332211"
 
+    echo negpi_str
     echo fp128ToStr(cast[Int128](negpi))
+
     echo fp128ToStr(strToFp128("-1"))
     echo fp128ToStr(strToFp128("1"))
     echo fp128ToStr(strToFp128("1.25"))
     echo fp128ToStr(strToFp128("1.32"))
     echo fp128ToStr(strToFp128("1.3333333333333333333"))
-    echo fp128ToStr(strToFp128("0.0000000000000000001"))
-    echo fp128ToStr(i128(1))
+    echo fp128ToStr(strToFp128("0.000000000000000001"))
+    echo "smallest possible:\n", fp128ToStr(i128(1))
     echo fp128ToStr(strToFp128(""))
-    echo fp128ToStr(strToFp128("-0.95908709673676639795"))
+    let hi_bit_number = "-0.95908709673676639795"
+    echo hi_bit_number
+    echo fp128ToStr(strToFp128(hi_bit_number))
 
 #test()
 #quit()
