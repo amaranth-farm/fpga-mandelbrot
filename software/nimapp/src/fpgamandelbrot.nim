@@ -181,7 +181,7 @@ proc main() =
         igBegin("FPGA Mandelbrot")
         igInputText("center x", center_x_str, 64, CallbackCharFilter, fixedpointnumber)
         igInputText("center y", center_y_str, 64, CallbackCharFilter, fixedpointnumber)
-        igInputText("radius",   radius_str,   64,   CallbackCharFilter, fixedpointnumber)
+        igInputText("radius",   radius_str,   64, CallbackCharFilter, fixedpointnumber)
         igSliderInt("iterations", addr max_iterations, 10'i32, 0x7fffff'i32, flags=ImGuiSliderFlags.Logarithmic)
 
         var calculate_fpga_parameters = proc(): tuple[corner_x: Int128, corner_y: Int128, step: Int128] =
@@ -189,7 +189,7 @@ proc main() =
                 radius_pixels = i128(min(width, height) shr 1)
                 step = radius div radius_pixels
                 corner_x = center_x - (i128(width)  shr 1) * step
-                corner_y = -(center_y + (i128(height) shr 1) * step)
+                corner_y = center_y - (i128(height) shr 1) * step
             return (corner_x, corner_y, step)
 
         let wheel = igGetIO().mouseWheel
@@ -210,7 +210,11 @@ proc main() =
             except:
                 set_to_defaults()
 
-            let p =calculate_fpga_parameters()
+            let p = calculate_fpga_parameters()
+            when false:
+                echo " center_x: ", fp128ToStr(center_x)
+                echo " center_y: ", fp128ToStr(center_y)
+                echo  "corner_x: ", fp128ToStr(p.corner_x), "corner_y: ", fp128ToStr(p.corner_y), "step: ", fp128ToStr(p.step)
             pixel_iter = render(p.corner_x, p.corner_y, (uint32)max_iterations, p.step)
 
         igSameLine()
@@ -271,8 +275,9 @@ proc main() =
                 max_y = min_y + (float32)height
                 mouse_x_rel = max(0, mouse.x - min_x)
                 mouse_y_rel = max(0, mouse.y - min_y)
-                mouse_x_fp = params.corner_x + fp_mul(strToFp128($mouse_x_rel), params.step)
-                mouse_y_fp = params.corner_y + fp_mul(height.from_int() - strToFp128($mouse_y_rel), params.step)
+                mouse_x_fp = center_x + fp_mul(strToFp128($mouse_x_rel)-(strToFp128($width) shr 1), params.step)
+                # window y grows from top to bottom, mandelbrot y from bottom to tops
+                mouse_y_fp = center_y + fp_mul((height.from_int() shr 1) - strToFp128($mouse_y_rel), params.step)
                 mouse_x_str = fp128ToStr(mouse_x_fp)
                 mouse_y_str = fp128ToStr(mouse_y_fp)
                 crosshairs_color  = 0xffffffff'u32
@@ -285,15 +290,13 @@ proc main() =
 
             glTexImage2D(GL_TEXTURE_2D, (GLint)0, (GLint)GL_RGB, (GLsizei)width, (GLsizei)height, (GLint)0, GL_RGB, GL_UNSIGNED_BYTE, addr image)
             if igImageButton(cast[ImTextureID](tof), ImVec2(x: (float32)width, y: (float32)height)):
-                when true:
+                when false:
                     echo "min_x: ", min_x
                     echo "min_y: ", min_y
                     echo "max_x: ", max_x
                     echo "max_y: ", max_y
                     echo "mouse_x_rel: ", mouse_x_rel
                     echo "mouse_y_rel: ", mouse_y_rel
-                    echo "mouse_x_fp: ", mouse_x_fp
-                    echo "mouse_y_fp: ", mouse_y_fp
                     echo "mouse_x_str: ", mouse_x_str
                     echo "mouse_y_str: ", mouse_y_str
 
