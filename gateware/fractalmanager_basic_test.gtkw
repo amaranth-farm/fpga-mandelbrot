@@ -1,220 +1,203 @@
 [*]
-[*] GTKWave Analyzer v3.3.111 (w)1999-2020 BSI
-[*] Wed Oct 13 03:10:40 2021
+[*] GTKWave Analyzer v3.4.0 (w)1999-2022 BSI
+[*] Thu Apr  6 03:49:12 2023
 [*]
-[dumpfile] "/devel/HDL/src/deca-mandelbrot/test_FractalManagerTest_test_basic.vcd"
-[dumpfile_mtime] "Wed Oct 13 03:06:54 2021"
-[dumpfile_size] 422466
-[savefile] "/devel/HDL/src/deca-mandelbrot/fractalmanager_basic_test.gtkw"
-[timestart] 9682900
-[size] 3828 2090
+[dumpfile] "/devel/HDL/src/deca-mandelbrot/gateware/test_FractalManagerTest_test_basic.vcd"
+[dumpfile_mtime] "Thu Apr  6 03:36:18 2023"
+[dumpfile_size] 653272
+[savefile] "/devel/HDL/src/deca-mandelbrot/gateware/fractalmanager_basic_test.gtkw"
+[timestart] 11990000
+[size] 2550 2822
 [pos] -1 -1
-*-15.543523 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
-[treeopen] top.
+*-17.664913 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] bench.top.fractal_manager.
 [sst_width] 357
 [signals_width] 450
 [sst_expanded] 1
 [sst_vpaned_height] 650
 @28
-top.clk
+bench.top.fractal_manager.clk
 @200
 -Input stream
 @22
-top.command_stream__payload[7:0]
-@28
-top.command_stream__valid
-top.command_stream__ready
-@22
-top.bytepos[15:0]
-top.no_pixels_x[15:0]
-top.no_pixels_y[15:0]
+bench.top.fractal_manager.no_pixels_x[15:0]
+bench.top.fractal_manager.no_pixels_y[15:0]
 @24
-top.max_iterations[31:0]
+bench.top.fractal_manager.max_iterations[31:0]
 @40c00420
 [fpshift_count] 56
-top.bottom_left_corner_x[63:0]
+bench.top.fractal_manager.bottom_left_corner_x[63:0]
 @28
-(0)top.bottom_left_corner_x[63:0]
-(1)top.bottom_left_corner_x[63:0]
-(2)top.bottom_left_corner_x[63:0]
-(3)top.bottom_left_corner_x[63:0]
-(4)top.bottom_left_corner_x[63:0]
-(5)top.bottom_left_corner_x[63:0]
-(6)top.bottom_left_corner_x[63:0]
-(7)top.bottom_left_corner_x[63:0]
-(8)top.bottom_left_corner_x[63:0]
-(9)top.bottom_left_corner_x[63:0]
-(10)top.bottom_left_corner_x[63:0]
-(11)top.bottom_left_corner_x[63:0]
-(12)top.bottom_left_corner_x[63:0]
-(13)top.bottom_left_corner_x[63:0]
-(14)top.bottom_left_corner_x[63:0]
-(15)top.bottom_left_corner_x[63:0]
-(16)top.bottom_left_corner_x[63:0]
-(17)top.bottom_left_corner_x[63:0]
-(18)top.bottom_left_corner_x[63:0]
-(19)top.bottom_left_corner_x[63:0]
-(20)top.bottom_left_corner_x[63:0]
-(21)top.bottom_left_corner_x[63:0]
-(22)top.bottom_left_corner_x[63:0]
-(23)top.bottom_left_corner_x[63:0]
-(24)top.bottom_left_corner_x[63:0]
-(25)top.bottom_left_corner_x[63:0]
-(26)top.bottom_left_corner_x[63:0]
-(27)top.bottom_left_corner_x[63:0]
-(28)top.bottom_left_corner_x[63:0]
-(29)top.bottom_left_corner_x[63:0]
-(30)top.bottom_left_corner_x[63:0]
-(31)top.bottom_left_corner_x[63:0]
-(32)top.bottom_left_corner_x[63:0]
-(33)top.bottom_left_corner_x[63:0]
-(34)top.bottom_left_corner_x[63:0]
-(35)top.bottom_left_corner_x[63:0]
-(36)top.bottom_left_corner_x[63:0]
-(37)top.bottom_left_corner_x[63:0]
-(38)top.bottom_left_corner_x[63:0]
-(39)top.bottom_left_corner_x[63:0]
-(40)top.bottom_left_corner_x[63:0]
-(41)top.bottom_left_corner_x[63:0]
-(42)top.bottom_left_corner_x[63:0]
-(43)top.bottom_left_corner_x[63:0]
-(44)top.bottom_left_corner_x[63:0]
-(45)top.bottom_left_corner_x[63:0]
-(46)top.bottom_left_corner_x[63:0]
-(47)top.bottom_left_corner_x[63:0]
-(48)top.bottom_left_corner_x[63:0]
-(49)top.bottom_left_corner_x[63:0]
-(50)top.bottom_left_corner_x[63:0]
-(51)top.bottom_left_corner_x[63:0]
-(52)top.bottom_left_corner_x[63:0]
-(53)top.bottom_left_corner_x[63:0]
-(54)top.bottom_left_corner_x[63:0]
-(55)top.bottom_left_corner_x[63:0]
-(56)top.bottom_left_corner_x[63:0]
-(57)top.bottom_left_corner_x[63:0]
-(58)top.bottom_left_corner_x[63:0]
-(59)top.bottom_left_corner_x[63:0]
-(60)top.bottom_left_corner_x[63:0]
-(61)top.bottom_left_corner_x[63:0]
-(62)top.bottom_left_corner_x[63:0]
-(63)top.bottom_left_corner_x[63:0]
+(0)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(1)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(2)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(3)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(4)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(5)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(6)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(7)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(8)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(9)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(10)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(11)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(12)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(13)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(14)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(15)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(16)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(17)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(18)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(19)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(20)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(21)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(22)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(23)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(24)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(25)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(26)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(27)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(28)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(29)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(30)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(31)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(32)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(33)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(34)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(35)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(36)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(37)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(38)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(39)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(40)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(41)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(42)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(43)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(44)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(45)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(46)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(47)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(48)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(49)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(50)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(51)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(52)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(53)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(54)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(55)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(56)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(57)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(58)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(59)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(60)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(61)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(62)bench.top.fractal_manager.bottom_left_corner_x[63:0]
+(63)bench.top.fractal_manager.bottom_left_corner_x[63:0]
 @1401200
 -group_end
 @40000420
 [fpshift_count] 56
-top.bottom_left_corner_y[63:0]
+bench.top.fractal_manager.bottom_left_corner_y[63:0]
 [fpshift_count] 56
-top.step[63:0]
-@28
-top.command_complete
+bench.top.fractal_manager.step[63:0]
 @22
-top.no_pixels_x[15:0]
-top.no_pixels_y[15:0]
+bench.top.fractal_manager.no_pixels_x[15:0]
+bench.top.fractal_manager.no_pixels_y[15:0]
 @200
 -Core Scheduler
 @28
-top.scheduler_state
-top.current_core
-top.next_core
-top.next_core_ready
+bench.top.fractal_manager.scheduler_state
+bench.top.fractal_manager.current_core
+bench.top.fractal_manager.next_core
+bench.top.fractal_manager.next_core_ready
 @22
 [color] 3
-top.current_pixel_x[15:0]
+bench.top.fractal_manager.current_pixel_x[15:0]
 [color] 3
-top.current_pixel_y[15:0]
+bench.top.fractal_manager.current_pixel_y[15:0]
 @40000420
 [fpshift_count] 56
-top.current_x[63:0]
+bench.top.fractal_manager.current_x[63:0]
 [fpshift_count] 56
-top.current_y[63:0]
+bench.top.fractal_manager.current_y[63:0]
 @200
 -Core0
 @28
-top.core_0.fsm_state
+bench.top.fractal_manager.core_0.fsm_state
 @24
-top.core_0.iterations_out[31:0]
+bench.top.fractal_manager.core_0.iterations_out[31:0]
 @40000420
 [fpshift_count] 56
-top.core_0.cx_in[63:0]
+bench.top.fractal_manager.core_0.cx_in[63:0]
 [fpshift_count] 56
-top.core_0.cy_in[63:0]
+bench.top.fractal_manager.core_0.cy_in[63:0]
 @24
-top.pixelx_0[63:0]
-top.pixely_0[63:0]
+bench.top.fractal_manager.pixelx_0[63:0]
+bench.top.fractal_manager.pixely_0[63:0]
 @40000420
 [fpshift_count] 56
-top.core_0.x[63:0]
+bench.top.fractal_manager.core_0.x[63:0]
 [fpshift_count] 56
-top.core_0.y[63:0]
+bench.top.fractal_manager.core_0.y[63:0]
 @28
-top.core_0.result_read
-top.core_0.result_ready_out
+bench.top.fractal_manager.core_0.result_read
+bench.top.fractal_manager.core_0.result_ready_out
 @200
 -Core1
 @28
-top.core_1.fsm_state
+bench.top.fractal_manager.core_1.fsm_state
 @22
-top.core_1.iterations_out[31:0]
+bench.top.fractal_manager.core_1.iterations_out[31:0]
 @40000420
 [fpshift_count] 56
-top.core_1.cx_in[63:0]
+bench.top.fractal_manager.core_1.cx_in[63:0]
 [fpshift_count] 56
-top.core_1.cy_in[63:0]
+bench.top.fractal_manager.core_1.cy_in[63:0]
 @22
-top.pixelx_1[63:0]
-top.pixely_1[63:0]
+bench.top.fractal_manager.pixelx_1[63:0]
+bench.top.fractal_manager.pixely_1[63:0]
 @40000420
 [fpshift_count] 56
-top.core_1.x[63:0]
+bench.top.fractal_manager.core_1.x[63:0]
 [fpshift_count] 56
-top.core_1.y[63:0]
+bench.top.fractal_manager.core_1.y[63:0]
 @28
-top.core_1.result_read
-top.core_1.result_ready_out
+bench.top.fractal_manager.core_1.result_read
+bench.top.fractal_manager.core_1.result_ready_out
 @200
 -Core Status
 @28
-top.core_0.start_in
-top.core_1.start_in
-top.idle_0
-top.idle_1
-top.busy_out
-top.busy_out$1
-top.done_0
-top.done_1
-top.escape_0
-top.escape_1
-top.maxed_0
-top.maxed_1
-top.collect_0
-top.collect_1
+bench.top.fractal_manager.core_0.start_in
+bench.top.fractal_manager.core_1.start_in
+bench.top.fractal_manager.idle_0
+bench.top.fractal_manager.idle_1
+bench.top.fractal_manager.busy_out$1
+bench.top.fractal_manager.done_0
+bench.top.fractal_manager.done_1
+bench.top.fractal_manager.escape_0
+bench.top.fractal_manager.escape_1
+bench.top.fractal_manager.maxed_0
+bench.top.fractal_manager.maxed_1
+bench.top.fractal_manager.collect_0
+bench.top.fractal_manager.collect_1
 @200
 -Result Collector
 @28
-top.result_collector_state
+bench.top.fractal_manager.result_collector_state
 @24
-top.result_iterations[31:0]
+bench.top.fractal_manager.result_iterations[31:0]
 @28
-top.current_result
-top.next_result
-top.next_result_ready
+bench.top.fractal_manager.current_result
+bench.top.fractal_manager.next_result
+bench.top.fractal_manager.next_result_ready
 @22
-top.result_pixel_x[15:0]
-top.result_pixel_y[15:0]
+bench.top.fractal_manager.result_pixel_x[15:0]
+bench.top.fractal_manager.result_pixel_y[15:0]
 @24
-top.result_iterations[31:0]
+bench.top.fractal_manager.result_iterations[31:0]
 @28
-top.result_escape
-top.result_maxed
-@23
-top.result_color[23:0]
+bench.top.fractal_manager.result_escape
+bench.top.fractal_manager.result_maxed
 @200
 -Output Stream
-@22
-top.pixel_stream__payload[7:0]
-@28
-top.pixel_stream__valid
-top.pixel_stream__first
-top.pixel_stream__last
 [pattern_trace] 1
 [pattern_trace] 0

@@ -7,7 +7,7 @@ from amlib.stream        import StreamInterface
 
 from mandelbrot import Mandelbrot
 
-class FractalManager(Elaboratable):
+class FractalManagerCore(Elaboratable):
     def __init__(self, *, bitwidth, fraction_bits, no_cores, test=False):
         # Parameters
         assert bitwidth % 8 == 0, "bitwidth must be a multiple of 8"
@@ -17,87 +17,40 @@ class FractalManager(Elaboratable):
         self._test = test
 
         # I/O
-        self.command_stream_in  = StreamInterface(name="command_stream")
-        self.pixel_stream_out   = StreamInterface(name="pixel_stream")
-        self.busy_out           = Signal(no_cores)
-
+        self.busy_out     = Signal(no_cores)
         self.result_x_out = Signal(16)
         self.result_y_out = Signal(16)
+
+        # command input
+        self.no_pixels_x    = Signal(16)
+        self.no_pixels_y    = Signal(16)
+        self.max_iterations = Signal(32)
+
+        self.bottom_left_corner_x = Signal(signed(bitwidth))
+        self.bottom_left_corner_y = Signal(signed(bitwidth))
+        self.step                 = Signal(signed(bitwidth))
+
+        # this will trigger the computation
+        self.start = Signal()
+
+        # result output
+        self.result_iterations = Signal(32)
+        self.result_pixel_x    = Signal(16)
+        self.result_pixel_y    = Signal(16)
+        self.result_escape     = Signal()
+        self.result_maxed      = Signal()
+        self.result_valid      = Signal() # strobes, if the result is valid
 
     def elaborate(self, platform: Platform) -> Module:
         m = Module()
         bitwidth  = self._bitwidth
         bytewidth = bitwidth // 8
-        stream_in = self.command_stream_in
         no_cores = self._no_cores
 
-        no_pixels_x    = Signal(16)
-        no_pixels_y    = Signal(16)
-        max_iterations = Signal(32)
-
-        bottom_left_corner_x = Signal(signed(bitwidth))
-        bottom_left_corner_y = Signal(signed(bitwidth))
-        step                 = Signal(signed(bitwidth))
-
-        current_x = Signal.like(bottom_left_corner_x)
-        current_y = Signal.like(bottom_left_corner_y)
-        current_pixel_x = Signal.like(no_pixels_x)
-        current_pixel_y = Signal.like(no_pixels_y)
-
-        bytepos          = Signal(16)
-        command_complete = Signal()
-
-        ready = Signal()
-        m.d.comb += stream_in.ready.eq(ready)
-
-        # read command
-        with m.If(stream_in.valid & ready & ~command_complete):
-            m.d.sync += bytepos.eq(bytepos + 1)
-
-            with m.Switch(bytepos):
-                with m.Case(0):
-                    m.d.sync += no_pixels_x[:8].eq(stream_in.payload)
-                with m.Case(1):
-                    m.d.sync += no_pixels_x[8:].eq(stream_in.payload)
-
-                with m.Case(2):
-                    m.d.sync += no_pixels_y[:8].eq(stream_in.payload)
-                with m.Case(3):
-                    m.d.sync += no_pixels_y[8:].eq(stream_in.payload)
-
-                for b in range(4):
-                    with m.Case(4 + b):
-                        m.d.sync += max_iterations[b*8:(b*8+8)].eq(stream_in.payload),
-
-                for b in range(bytewidth):
-                    with m.Case(8 + b):
-                        m.d.sync += bottom_left_corner_x[b*8:(b*8+8)].eq(stream_in.payload),
-
-                for b in range(bytewidth):
-                    with m.Case(8 + bytewidth + b):
-                        m.d.sync += bottom_left_corner_y[b*8:(b*8+8)].eq(stream_in.payload),
-
-                for b in range(bytewidth):
-                    with m.Case(8 + 2*bytewidth + b):
-                        m.d.sync += step[b*8:(b*8+8)].eq(stream_in.payload),
-
-                with m.Default():
-                    m.d.sync += bytepos.eq(0)
-                    with m.If(stream_in.payload == 0xa5):
-                        m.d.sync += [
-                            command_complete.eq(1),
-                            current_x.eq(bottom_left_corner_x),
-                            current_y.eq(bottom_left_corner_y),
-                            current_pixel_x.eq(0),
-                            current_pixel_y.eq(0),
-                        ]
-                    with m.Else():
-                        m.d.sync += [
-                            bottom_left_corner_x.eq(0),
-                            bottom_left_corner_y.eq(0),
-                            step.eq(0),
-                            max_iterations.eq(64),
-                        ]
+        current_x = Signal.like(self.bottom_left_corner_x)
+        current_y = Signal.like(self.bottom_left_corner_y)
+        current_pixel_x = Signal.like(self.no_pixels_x)
+        current_pixel_y = Signal.like(self.no_pixels_y)
 
         # instantiate cores
         cores    = []
@@ -133,7 +86,7 @@ class FractalManager(Elaboratable):
                 iterations[c].eq(core.iterations_out),
                 core.cx_in.eq(xs[c]),
                 core.cy_in.eq(ys[c]),
-                core.max_iterations_in.eq(max_iterations),
+                core.max_iterations_in.eq(self.max_iterations),
             ]
 
         # next core scheduler
@@ -163,16 +116,20 @@ class FractalManager(Elaboratable):
 
         # core scheduler FSM
         with m.FSM(name="scheduler") as fsm:
-            m.d.comb += ready.eq(fsm.ongoing("IDLE"))
             with m.State("IDLE"):
-                with m.If(command_complete):
+                with m.If(self.start):
+                    m.d.sync += [
+                        current_x.eq(self.bottom_left_corner_x),
+                        current_y.eq(self.bottom_left_corner_y),
+                        current_pixel_x.eq(0),
+                        current_pixel_y.eq(0),
+                    ]
                     m.d.comb += Cat(collect).eq(2**no_cores - 1)
-                    m.d.sync += command_complete.eq(0)
                     m.next = "PICK"
 
             with m.State("PICK"):
-                with m.If(  (current_pixel_x == no_pixels_x)
-                          & (current_pixel_y == no_pixels_y)):
+                with m.If(  (current_pixel_x == self.no_pixels_x)
+                          & (current_pixel_y == self.no_pixels_y)):
                     m.d.sync += [
                         current_pixel_x.eq(0),
                         current_pixel_y.eq(0),
@@ -191,16 +148,16 @@ class FractalManager(Elaboratable):
                     pixel_y[current_core].eq(current_pixel_y),
                 ]
 
-                with m.If(current_pixel_x < no_pixels_x):
+                with m.If(current_pixel_x < self.no_pixels_x):
                     m.d.sync += [
-                        current_x.eq(current_x + step),
+                        current_x.eq(current_x + self.step),
                         current_pixel_x.eq(current_pixel_x + 1),
                     ]
                 with m.Else():
                     m.d.sync += [
-                        current_x.eq(bottom_left_corner_x),
+                        current_x.eq(self.bottom_left_corner_x),
                         current_pixel_x.eq(0),
-                        current_y.eq(current_y + step),
+                        current_y.eq(current_y + self.step),
                         current_pixel_y.eq(current_pixel_y + 1),
                     ]
 
@@ -210,73 +167,173 @@ class FractalManager(Elaboratable):
                 m.d.comb += start[current_core].eq(1)
                 m.next = "PICK"
 
-
-        pixel_out = self.pixel_stream_out
-        result_iterations = Signal(32)
-        result_pixel_x    = Signal(16)
-        result_pixel_y    = Signal(16)
-        result_escape     = Signal()
-        result_maxed      = Signal()
-        send_byte         = Signal(8)
-        first_result_sent = Signal()
-
         m.d.comb += [
-            self.result_x_out.eq(result_pixel_x),
-            self.result_y_out.eq(result_pixel_y),
+            self.result_x_out.eq(self.result_pixel_x),
+            self.result_y_out.eq(self.result_pixel_y),
         ]
 
         # result collector FSM
         with m.FSM(name="result_collector") as fsm:
             with m.State("WAIT"):
+                m.d.comb += self.result_valid.eq(0)
                 with m.If(next_result_ready):
                     m.d.sync += current_result.eq(next_result)
                     m.next = "COLLECT"
 
             with m.State("COLLECT"):
-                m.d.sync += [
-                    result_iterations.eq(iterations [current_result]),
-                    result_maxed     .eq(maxed      [current_result]),
-                    result_escape    .eq(escape     [current_result]),
-                    result_pixel_x   .eq(pixel_x    [current_result]),
-                    result_pixel_y   .eq(pixel_y    [current_result]),
-                    send_byte.eq(0),
+                m.d.comb += [
+                    self.result_iterations.eq(iterations [current_result]),
+                    self.result_maxed     .eq(maxed      [current_result]),
+                    self.result_escape    .eq(escape     [current_result]),
+                    self.result_pixel_x   .eq(pixel_x    [current_result]),
+                    self.result_pixel_y   .eq(pixel_y    [current_result]),
+                    self.result_valid.eq(1),
+                    collect[current_result].eq(1)
                 ]
-                m.d.comb += collect[current_result].eq(1)
-                m.next = "SEND"
+                m.next = "WAIT"
+
+        return m
+
+class FractalManagerStream(Elaboratable):
+    def __init__(self, *, bitwidth, fraction_bits, no_cores, test=False):
+        # Parameters
+        assert bitwidth % 8 == 0, "bitwidth must be a multiple of 8"
+        self._bitwidth = bitwidth
+        self._no_cores = no_cores
+        self._fraction_bits = fraction_bits
+        self._test = test
+
+        # I/O
+        self.command_stream_in  = StreamInterface(name="command_stream")
+        self.pixel_stream_out   = StreamInterface(name="pixel_stream")
+        self.busy_out           = Signal(no_cores)
+
+        self.result_x_out = Signal(16)
+        self.result_y_out = Signal(16)
+
+    def elaborate(self, platform: Platform) -> Module:
+        m = Module()
+        bitwidth  = self._bitwidth
+        bytewidth = bitwidth // 8
+        stream_in = self.command_stream_in
+        no_cores = self._no_cores
+        pixel_out = self.pixel_stream_out
+
+        manager = FractalManagerCore(
+            bitwidth=self._bitwidth,
+            fraction_bits=self._fraction_bits,
+            no_cores=self._no_cores,
+            test=self._test)
+
+        m.submodules.fractal_manager = manager
+
+        bytepos          = Signal(16)
+        command_complete = Signal()
+
+        ready = Signal()
+        m.d.comb += stream_in.ready.eq(ready)
+
+        # read command
+        with m.If(stream_in.valid & ready & ~command_complete):
+            m.d.sync += bytepos.eq(bytepos + 1)
+
+            with m.Switch(bytepos):
+                with m.Case(0):
+                    m.d.sync += manager.no_pixels_x[:8].eq(stream_in.payload)
+                with m.Case(1):
+                    m.d.sync += manager.no_pixels_x[8:].eq(stream_in.payload)
+
+                with m.Case(2):
+                    m.d.sync += manager.no_pixels_y[:8].eq(stream_in.payload)
+                with m.Case(3):
+                    m.d.sync += manager.no_pixels_y[8:].eq(stream_in.payload)
+
+                for b in range(4):
+                    with m.Case(4 + b):
+                        m.d.sync += manager.max_iterations[b*8:(b*8+8)].eq(stream_in.payload),
+
+                for b in range(bytewidth):
+                    with m.Case(8 + b):
+                        m.d.sync += manager.bottom_left_corner_x[b*8:(b*8+8)].eq(stream_in.payload),
+
+                for b in range(bytewidth):
+                    with m.Case(8 + bytewidth + b):
+                        m.d.sync += manager.bottom_left_corner_y[b*8:(b*8+8)].eq(stream_in.payload),
+
+                for b in range(bytewidth):
+                    with m.Case(8 + 2*bytewidth + b):
+                        m.d.sync += manager.step[b*8:(b*8+8)].eq(stream_in.payload),
+
+                with m.Default():
+                    m.d.sync += bytepos.eq(0)
+                    with m.If(stream_in.payload == 0xa5):
+                        m.d.sync += [
+                            command_complete.eq(1),
+                        ]
+                        m.d.comb += manager.start.eq(1)
+                    with m.Else():
+                        m.d.sync += [
+                            manager.bottom_left_corner_x.eq(0),
+                            manager.bottom_left_corner_y.eq(0),
+                            manager.step.eq(1),
+                            manager.max_iterations.eq(64),
+                        ]
+
+        result_iterations = Signal(32)
+        result_pixel_x    = Signal(16)
+        result_pixel_y    = Signal(16)
+        result_escape     = Signal()
+        result_maxed      = Signal()
+
+        send_byte = Signal(8)
+        first_result_sent = Signal()
+
+        with m.FSM(name="result_transmitter") as fsm:
+            with m.State("IDLE"):
+                m.d.comb += ready.eq(~manager.busy_out)
+                with m.If(pixel_out.ready & manager.result_valid):
+                    m.d.sync += [
+                        result_iterations .eq(manager.result_iterations),
+                        result_pixel_x    .eq(manager.result_pixel_x),
+                        result_pixel_y    .eq(manager.result_pixel_y),
+                        result_escape     .eq(manager.result_escape),
+                        result_maxed      .eq(manager.result_maxed),
+                        send_byte         .eq(0),
+                    ]
+                    m.next = "SEND"
 
             with m.State("SEND"):
-                with m.If(pixel_out.ready):
-                    m.d.sync += send_byte.eq(send_byte + 1)
-                    m.d.comb += pixel_out.valid.eq(1)
+                m.d.sync += send_byte.eq(send_byte + 1)
+                m.d.comb += pixel_out.valid.eq(1)
 
-                    with m.Switch(send_byte):
-                        with m.Case(0):
-                            m.d.comb += pixel_out.payload.eq(result_pixel_x[0:8])
-                            # mark first result byte
-                            with m.If(~first_result_sent):
-                                m.d.comb += pixel_out.first.eq(1)
-                                m.d.sync += first_result_sent.eq(1)
-                        with m.Case(1):
-                            m.d.comb +=  pixel_out.payload.eq(result_pixel_x[8:16])
-                        with m.Case(2):
-                            m.d.comb +=  pixel_out.payload.eq(result_pixel_y[0:8])
-                        with m.Case(3):
-                            m.d.comb +=  pixel_out.payload.eq(result_pixel_y[8:16])
-                        with m.Case(4):
-                            m.d.comb +=  pixel_out.payload.eq(Cat(result_iterations[0:7], result_maxed))
-                        with m.Default():
-                            # separator
-                            m.d.comb +=  pixel_out.payload.eq(0xa5)
-                            # mark last result byte
-                            with m.If(Cat(idle) == Repl(Const(1, 1), no_cores)):
-                                m.d.comb += pixel_out.last.eq(1)
-                                m.d.sync += first_result_sent.eq(0)
-                            m.next = "WAIT"
+                with m.Switch(send_byte):
+                    with m.Case(0):
+                        m.d.comb += pixel_out.payload.eq(result_pixel_x[0:8])
+                        # mark first result byte
+                        with m.If(~first_result_sent):
+                            m.d.comb += pixel_out.first.eq(1)
+                            m.d.sync += first_result_sent.eq(1)
+                    with m.Case(1):
+                        m.d.comb +=  pixel_out.payload.eq(result_pixel_x[8:16])
+                    with m.Case(2):
+                        m.d.comb +=  pixel_out.payload.eq(result_pixel_y[0:8])
+                    with m.Case(3):
+                        m.d.comb +=  pixel_out.payload.eq(result_pixel_y[8:16])
+                    with m.Case(4):
+                        m.d.comb +=  pixel_out.payload.eq(Cat(result_iterations[0:7], result_maxed))
+                    with m.Default():
+                        m.d.sync += first_result_sent.eq(0)
+                        # separator
+                        m.d.comb +=  pixel_out.payload.eq(0xa5)
+                        # mark last result byte
+                        with m.If(~manager.busy_out):
+                            m.d.comb += pixel_out.last.eq(1)
+                        m.next = "IDLE"
 
         return m
 
 class FractalManagerTest(GatewareTestCase):
-    FRAGMENT_UNDER_TEST = FractalManager
+    FRAGMENT_UNDER_TEST = FractalManagerStream
     FRAGMENT_ARGUMENTS = {'bitwidth': 64, 'fraction_bits': 56, 'no_cores':2, 'test': True}
 
     @sync_test_case

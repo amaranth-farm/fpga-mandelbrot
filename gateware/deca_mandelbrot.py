@@ -22,7 +22,7 @@ from luna.gateware.usb.usb2.device            import USBDevice
 from luna.gateware.usb.usb2.endpoints.stream  import USBMultibyteStreamInEndpoint
 from luna.gateware.usb.usb2.request           import USBRequestHandler, StallOnlyRequestHandler
 
-from fractalmanager import FractalManager
+from fractalmanager import FractalManagerStream
 
 
 class MandelbrotAccelerator(Elaboratable):
@@ -110,7 +110,7 @@ class MandelbrotAccelerator(Elaboratable):
         m.submodules.command_fifo = command_fifo = AsyncFIFO(width=8, depth=32, w_domain="usb", r_domain="fast")
         m.submodules.result_fifo  = result_fifo  = AsyncFIFO(width=8+2, depth=4*self.MAX_PACKET_SIZE, w_domain="fast", r_domain="usb")
 
-        m.submodules.fractalmanager = fractalmanager = DomainRenamer("fast")(FractalManager(bitwidth=8*9, fraction_bits=8*8, no_cores=9))
+        m.submodules.fractalmanager = fractalmanager = DomainRenamer("fast")(FractalManagerStream(bitwidth=8*9, fraction_bits=8*8, no_cores=9))
 
         # wire up USB via FIFOs to fractalmanager
         m.d.comb += [
